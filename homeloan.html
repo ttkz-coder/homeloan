@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมคำนวณผ่อนบ้าน & บันทึกข้อมูล (Pro)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        /* ซ่อนลูกศรในช่อง input type="number" */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        /* ป้องกัน iOS Safari ซูมหน้าจออัตโนมัติเมื่อกดพิมพ์ในมือถือ */
+        @media screen and (max-width: 768px) {
+            input, select, textarea { font-size: 16px !important; }
+        }
+        /* Custom Scrollbar สำหรับตาราง */
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen p-4 md:p-8 selection:bg-indigo-100 selection:text-indigo-900" onload="loadData()">
+
+    <div class="max-w-5xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <div class="text-center space-y-3 mt-4 mb-8">
+            <div class="inline-flex items-center justify-center p-3 bg-indigo-100 rounded-2xl mb-2 text-indigo-600">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Homeloan</h1>
+        </div>
+
+        <!-- Section 1: Initial Setup -->
+        <div class="bg-white p-5 md:p-8 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold mr-3 shrink-0">1</div>
+                    <h2 class="text-xl font-semibold text-slate-800">ตั้งค่าสัญญาเริ่มต้น</h2>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 bg-slate-50 p-1.5 rounded-xl border border-slate-100 w-full sm:w-auto">
+                    <button onclick="loadFromGoogleSheets()" class="flex-1 sm:flex-none justify-center flex items-center text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-3 py-2 rounded-lg transition-colors font-medium">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        โหลดข้อมูล
+                    </button>
+                    <div class="hidden sm:block w-px h-4 bg-slate-300"></div>
+                    <button onclick="resetAllData()" class="flex-1 sm:flex-none justify-center flex items-center text-sm text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-3 py-2 rounded-lg transition-colors font-medium">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        ล้างข้อมูล
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1.5">ยอดหนี้ทั้งหมด (บาท)</label>
+                    <input type="text" id="initialAmount" oninput="formatInputNumber(this)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800" placeholder="เช่น 2,000,000">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1.5">ดอกเบี้ยตั้งต้นต่อปี (%)</label>
+                    <input type="number" id="interestRate" step="0.01" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800" placeholder="เช่น 3.10">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1.5">วันที่เริ่มกู้</label>
+                    <input type="date" id="startDate" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="initializeLoan()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-xl shadow-md shadow-slate-200 transition-all active:scale-[0.98]">
+                        บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section (Hidden initially) -->
+        <div id="dashboardSection" class="hidden space-y-6">
+            
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Balance Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex items-center">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-0.5">ยอดหนี้คงเหลือ</p>
+                        <h3 class="text-2xl font-bold text-slate-900" id="dashBalance">0.00</h3>
+                    </div>
+                </div>
+                <!-- Principal Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex items-center">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-0.5">รวมเงินต้นที่ตัดไป</p>
+                        <h3 class="text-2xl font-bold text-emerald-600" id="dashPrincipal">0.00</h3>
+                    </div>
+                </div>
+                <!-- Interest Card -->
+                <div class="bg-white p-6 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex items-center">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mr-4">
+                        <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-0.5">รวมดอกเบี้ยที่จ่ายไป</p>
+                        <h3 class="text-2xl font-bold text-rose-500" id="dashInterest">0.00</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress & Chart Panel -->
+            <div class="bg-white p-6 md:p-8 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div class="md:col-span-2 space-y-8">
+                    <!-- Progress Bar -->
+                    <div>
+                        <div class="flex justify-between items-end mb-2">
+                            <span class="text-sm font-semibold text-slate-700">ความคืบหน้าการผ่อนชำระ</span>
+                            <span class="text-lg font-bold text-indigo-600" id="progressText">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                            <div id="progressBar" class="bg-indigo-500 h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Forecast Box -->
+                    <div class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-5 border border-indigo-100/50 flex items-start">
+                        <div class="bg-white p-1.5 rounded-xl shadow-sm mr-4 shrink-0 text-indigo-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-indigo-900 text-sm">การพยากรณ์ (อิงจากค่างวดปกติล่าสุด)</h4>
+                            <p class="text-sm text-indigo-700/80 mt-1.5 leading-relaxed" id="forecastText">กรุณาเพิ่มรายการชำระเงินเพื่อดูพยากรณ์</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Chart -->
+                <div class="relative h-56 flex justify-center">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Add Payment Section -->
+            <div class="bg-white p-5 md:p-8 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                <div class="flex items-center mb-6">
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold mr-3 shrink-0">2</div>
+                    <h2 class="text-xl font-semibold text-slate-800">บันทึกการจ่ายค่างวด</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 md:gap-5 items-end">
+                    <!-- ประเภท -->
+                    <div class="sm:col-span-2 md:col-span-1">
+                        <label class="block text-sm font-medium text-slate-600 mb-1.5">ประเภทรายการ</label>
+                        <select id="paymentType" onchange="calculateLiveSavings()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800 cursor-pointer">
+                            <option value="ปกติ">จ่ายปกติ</option>
+                            <option value="โปะบ้าน">โปะบ้าน</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1.5">วันที่ชำระ</label>
+                        <input type="date" id="paymentDate" onchange="calculateLiveSavings()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1.5">ดอกเบี้ยปัจจุบัน (%)</label>
+                        <input type="number" id="currentRate" step="0.01" oninput="calculateLiveSavings()" class="w-full px-4 py-2.5 bg-indigo-50/50 border border-indigo-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-indigo-700 font-semibold" title="สามารถแก้ได้หากมีการ Refinance">
+                    </div>
+                    <div class="sm:col-span-2 md:col-span-1">
+                        <label class="block text-sm font-medium text-slate-600 mb-1.5">จำนวนเงิน (บาท)</label>
+                        <input type="text" id="paymentAmount" oninput="formatInputNumber(this); calculateLiveSavings();" class="w-full px-4 py-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none font-semibold text-emerald-700" placeholder="เช่น 15,000">
+                    </div>
+                    <div class="sm:col-span-2 md:col-span-1">
+                        <button id="submitBtn" onclick="processPayment()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] flex justify-center items-center">
+                            บันทึกยอด
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Saving Suggestion Box -->
+                <div id="savingSuggestion" class="hidden mt-6 bg-emerald-50/80 border border-emerald-100 rounded-2xl p-5 flex items-start transition-all duration-300">
+                    <div class="bg-white p-2 rounded-xl shadow-sm mr-4 shrink-0 text-emerald-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-emerald-900 text-sm">ความคุ้มค่าของยอดเงินนี้</h4>
+                        <p class="text-sm text-emerald-700/90 mt-1.5 leading-relaxed">
+                            ชำระยอด <span id="suggPayAmount" class="font-bold">0</span> บาท จะหักเงินต้น <span id="suggPrin" class="font-bold">0</span> บาท<br>
+                            ประหยัดดอกเบี้ยในอนาคตได้ <span id="suggSaveInterest" class="text-base font-bold text-emerald-600">0</span> บาท 
+                            และผ่อนจบไวขึ้น <span id="suggSaveTime" class="font-bold text-emerald-800">0</span>!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="statusMessage" class="mt-4 text-sm hidden px-4 py-3 rounded-xl font-medium text-center"></div>
+            </div>
+
+            <!-- Ledger Table -->
+            <div class="bg-white rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border-b border-slate-100 bg-slate-50/50 gap-2">
+                    <h2 class="text-lg font-semibold text-slate-800">ประวัติการชำระเงิน</h2>
+                    <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-md sm:hidden flex items-center">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        เลื่อนซ้าย-ขวา เพื่อดูตาราง
+                    </span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                            <tr class="bg-white text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                                <th class="py-4 px-5 font-semibold">งวดที่</th>
+                                <th class="py-4 px-5 font-semibold">วันที่ชำระ</th>
+                                <th class="py-4 px-5 font-semibold text-center">ดอกเบี้ย</th>
+                                <th class="py-4 px-5 font-semibold text-right">ยอดชำระ</th>
+                                <th class="py-4 px-5 font-semibold text-right">หักดอกเบี้ย</th>
+                                <th class="py-4 px-5 font-semibold text-right">หักเงินต้น</th>
+                                <th class="py-4 px-5 font-semibold text-right">ยอดคงเหลือ</th>
+                                <th class="py-4 px-5 font-semibold text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerBody" class="text-sm divide-y divide-slate-50 bg-white">
+                            <!-- Rows will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 1. Overlay หมุนๆ ขณะโหลดหรือซิงค์ข้อมูล (Loading Spinner) -->
+    <div id="loadingOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center max-w-xs mx-4 border border-slate-100">
+            <svg class="animate-spin h-10 w-10 text-indigo-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <h3 id="loadingText" class="text-lg font-semibold text-slate-800 text-center">กำลังซิงค์ข้อมูล...</h3>
+            <p class="text-sm text-slate-500 mt-1 text-center">กรุณารอสักครู่</p>
+        </div>
+    </div>
+
+    <!-- 2. Popup ยืนยันการลบรายการ (Custom Confirm Modal) -->
+    <div id="deleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-all duration-300 border border-slate-100" id="deleteModalContent">
+            <div class="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mb-5 text-rose-500 mx-auto border border-rose-100">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 text-center mb-2">ยืนยันการลบรายการ?</h3>
+            <p class="text-sm text-slate-500 text-center mb-6 leading-relaxed">คุณแน่ใจหรือไม่ที่จะลบรายการนี้? เมื่อลบแล้วระบบจะคำนวณยอดใหม่ทั้งหมด และอัปเดตไปยัง Google Sheets อัตโนมัติ</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors">ยกเลิก</button>
+                <button onclick="confirmDelete()" class="flex-1 py-2.5 px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl shadow-md shadow-rose-200 transition-all active:scale-[0.98]">ลบรายการ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // 1. นำ URL Web App ของ GAS มาวางในเครื่องหมายคำพูดด้านล่างนี้
+        // ========================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfrjqXQRNUgmmZn1lqQS7SxeBoFEgc_P6qeFSZngQfUKxY1-7ztLtZ1o5jdxI7SKb9/exec"; 
+
+        // State ของแอปพลิเคชัน
+        let loanDetails = { amount: 0, rate: 0, startDate: '' };
+        let history = []; 
+        let currentBalance = 0;
+        let currentAccruedInterest = 0; 
+        let chartInstance = null;
+        let currentEditId = null;
+        let recordToDeleteId = null; // เก็บ ID ของรายการที่กำลังจะลบ
+
+        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
+        function loadData() {
+            const savedData = localStorage.getItem('homeLoanDataPro');
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                loanDetails = parsed.loanDetails;
+                history = parsed.history;
+                currentBalance = parsed.currentBalance;
+
+                document.getElementById('initialAmount').value = formatNumber(loanDetails.amount);
+                document.getElementById('interestRate').value = loanDetails.rate;
+                document.getElementById('startDate').value = loanDetails.startDate;
+                
+                const currentRate = history.length > 0 ? history[history.length - 1].rate : loanDetails.rate;
+                document.getElementById('currentRate').value = currentRate;
+
+                showDashboard();
+                updateUI();
+            }
+        }
+
+        function saveData() {
+            const data = { loanDetails, history, currentBalance };
+            localStorage.setItem('homeLoanDataPro', JSON.stringify(data));
+        }
+
+        function resetAllData() {
+            if(confirm("คุณต้องการลบข้อมูลประวัติการผ่อนในหน้านี้ทั้งหมดใช่หรือไม่?\n(ข้อมูลใน Google Sheets จะไม่ถูกลบไปด้วย)")) {
+                localStorage.removeItem('homeLoanDataPro');
+                location.reload(); 
+            }
+        }
+
+        function initializeLoan() {
+            const amountStr = document.getElementById('initialAmount').value.replace(/,/g, '');
+            const amount = parseFloat(amountStr);
+            const rate = parseFloat(document.getElementById('interestRate').value);
+            const startDate = document.getElementById('startDate').value;
+
+            if (isNaN(amount) || isNaN(rate) || !startDate) {
+                alert('กรุณากรอกข้อมูลเริ่มต้นให้ครบถ้วนและถูกต้อง');
+                return;
+            }
+
+            loanDetails = { amount, rate, startDate };
+            currentBalance = amount;
+            history = []; 
+            document.getElementById('currentRate').value = rate;
+
+            showDashboard();
+            updateUI();
+            saveData();
+            showMessage('ตั้งค่าสำเร็จ! เริ่มบันทึกค่างวดได้เลย', 'success');
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboardSection').classList.remove('hidden');
+        }
+
+        function getDaysBetween(dateString1, dateString2) {
+            const date1 = new Date(dateString1);
+            const date2 = new Date(dateString2);
+            const timeDiff = date2.getTime() - date1.getTime();
+            return Math.floor(timeDiff / (1000 * 3600 * 24));
+        }
+
+        function formatNumber(num) {
+            return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatInputNumber(input) {
+            let value = input.value.replace(/[^0-9.]/g, ''); 
+            let parts = value.split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); 
+            input.value = parts.length > 1 ? parts[0] + '.' + parts[1] : parts[0]; 
+        }
+
+        // คำนวณดอกเบี้ยที่ประหยัดได้แบบ Real-time
+        function calculateLiveSavings() {
+            const suggestionBox = document.getElementById('savingSuggestion');
+            const payAmountStr = document.getElementById('paymentAmount').value.replace(/,/g, '');
+            const payAmount = parseFloat(payAmountStr);
+
+            if (isNaN(payAmount) || payAmount <= 0 || currentBalance <= 0 || !loanDetails.startDate) {
+                suggestionBox.classList.add('hidden', 'opacity-0');
+                suggestionBox.classList.remove('opacity-100');
+                return;
+            }
+
+            const payDate = document.getElementById('paymentDate').value;
+            if (!payDate) return;
+            const lastDate = history.length > 0 ? history[history.length - 1].date : loanDetails.startDate;
+            const daysPassed = getDaysBetween(lastDate, payDate);
+            if (daysPassed < 0) {
+                suggestionBox.classList.add('hidden');
+                return;
+            }
+
+            const currentRate = parseFloat(document.getElementById('currentRate').value);
+            if (isNaN(currentRate) || currentRate <= 0) return;
+
+            let basePayment = 0;
+            for (let i = history.length - 1; i >= 0; i--) {
+                if (history[i].type === 'ปกติ') {
+                    basePayment = history[i].payment;
+                    break;
+                }
+            }
+            
+            if (basePayment <= 0) {
+                const r = (currentRate / 100) / 12;
+                const n = 360; // 30 ปี
+                basePayment = loanDetails.amount * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+            }
+
+            const assumedDaysPerMonth = 30.416;
+            const ratePerDay = (currentRate / 100) / 365;
+            const monthlyRate = ratePerDay * assumedDaysPerMonth;
+
+            const todayInt = currentAccruedInterest + (currentBalance * ratePerDay * daysPassed);
+            let todayPrin = 0;
+            if (payAmount >= todayInt) {
+                todayPrin = payAmount - todayInt;
+            } else {
+                todayPrin = 0;
+            }
+            
+            if (todayPrin <= 0) {
+                suggestionBox.classList.add('hidden');
+                return; 
+            }
+            if (todayPrin > currentBalance) todayPrin = currentBalance;
+
+            function calcAmort(bal, pmt) {
+                let totalInt = 0;
+                let m = 0;
+                let tempBal = bal;
+                let accruedInt = 0;
+                while(tempBal > 0 && m < 1200) {
+                    let newInt = tempBal * monthlyRate;
+                    accruedInt += newInt;
+                    
+                    let prin = 0;
+                    if(pmt >= accruedInt) {
+                        prin = pmt - accruedInt;
+                        totalInt += accruedInt;
+                        accruedInt = 0;
+                    } else {
+                        prin = 0;
+                        totalInt += pmt;
+                        accruedInt -= pmt;
+                    }
+                    if(prin <= 0 && accruedInt > 0) return { int: Infinity, m: Infinity };
+                    if(prin > tempBal) prin = tempBal;
+                    tempBal -= prin;
+                    m++;
+                }
+                return { int: totalInt, m: m };
+            }
+
+            const baseSim = calcAmort(currentBalance, basePayment);
+            const newBalance = currentBalance - todayPrin;
+            const newSim = calcAmort(newBalance, basePayment);
+
+            if (baseSim.int === Infinity || newSim.int === Infinity) {
+                suggestionBox.classList.add('hidden');
+                return;
+            }
+
+            const savedInterest = baseSim.int - newSim.int;
+            const savedMonths = baseSim.m - newSim.m;
+
+            if (savedInterest > 0) {
+                document.getElementById('suggPayAmount').innerText = formatNumber(payAmount);
+                document.getElementById('suggPrin').innerText = formatNumber(todayPrin);
+                document.getElementById('suggSaveInterest').innerText = formatNumber(savedInterest);
+                
+                let timeStr = "";
+                let y = Math.floor(savedMonths / 12);
+                let m = savedMonths % 12;
+                if (y > 0) timeStr += `${y} ปี `;
+                if (m > 0) timeStr += `${m} เดือน`;
+                if (timeStr === "") timeStr = "0 เดือน";
+                
+                document.getElementById('suggSaveTime').innerText = timeStr;
+                suggestionBox.classList.remove('hidden', 'opacity-0');
+                suggestionBox.classList.add('opacity-100');
+            } else {
+                suggestionBox.classList.add('hidden');
+            }
+        }
+
+        // บันทึกค่างวด
+        async function processPayment() {
+            const payType = document.getElementById('paymentType').value;
+            const payDate = document.getElementById('paymentDate').value;
+            const currentRate = parseFloat(document.getElementById('currentRate').value); 
+            const payAmountStr = document.getElementById('paymentAmount').value.replace(/,/g, '');
+            let payAmount = parseFloat(payAmountStr);
+
+            if (!payDate || isNaN(payAmount) || payAmount <= 0 || isNaN(currentRate)) {
+                showMessage('กรุณากรอกข้อมูลวันที่, ดอกเบี้ย และจำนวนเงินให้ถูกต้อง', 'error');
+                return;
+            }
+
+            if (currentEditId !== null) {
+                // โหมดแก้ไข
+                let index = history.findIndex(r => r.id === currentEditId);
+                if (index !== -1) {
+                    history[index].type = payType;
+                    history[index].date = payDate;
+                    history[index].rate = currentRate;
+                    history[index].payment = payAmount;
+                }
+                currentEditId = null;
+                
+                const btn = document.getElementById('submitBtn');
+                btn.innerHTML = 'บันทึกยอด';
+                btn.classList.replace('bg-amber-500', 'bg-emerald-500');
+                btn.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-600');
+                btn.classList.replace('shadow-amber-200', 'shadow-emerald-200');
+                
+                document.getElementById('paymentAmount').value = '';
+                document.getElementById('savingSuggestion').classList.add('hidden');
+                recalculateHistory();
+                return;
+            }
+
+            // โหมดเพิ่มรายการใหม่
+            const record = {
+                id: history.length + 1,
+                type: payType,
+                date: payDate,
+                rate: currentRate,
+                payment: payAmount,
+                interest: 0,
+                principal: 0,
+                balance: 0
+            };
+
+            history.push(record);
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('savingSuggestion').classList.add('hidden');
+            
+            recalculateHistory();
+        }
+
+        // คำนวณประวัติใหม่
+        function recalculateHistory(skipSync = false) {
+            history.sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+
+            let tempBalance = loanDetails.amount;
+            let lastDate = loanDetails.startDate;
+            let accruedInterestPool = 0; 
+
+            for (let i = 0; i < history.length; i++) {
+                let rec = history[i];
+                let daysPassed = getDaysBetween(lastDate, rec.date);
+                if (daysPassed < 0) daysPassed = 0; 
+
+                let newInterest = (tempBalance * (rec.rate / 100) * daysPassed) / 365;
+                accruedInterestPool += newInterest; 
+
+                let interestPaid = 0;
+                let principalPaid = 0;
+
+                if (rec.payment >= accruedInterestPool) {
+                    interestPaid = accruedInterestPool;
+                    principalPaid = rec.payment - accruedInterestPool;
+                    accruedInterestPool = 0; 
+                } else {
+                    interestPaid = rec.payment;
+                    principalPaid = 0; 
+                    accruedInterestPool -= rec.payment; 
+                }
+
+                if (principalPaid > tempBalance) {
+                    principalPaid = tempBalance;
+                }
+
+                tempBalance -= principalPaid;
+
+                rec.interest = interestPaid;
+                rec.principal = principalPaid;
+                rec.balance = tempBalance;
+                rec.id = i + 1; 
+                
+                lastDate = rec.date;
+            }
+
+            currentBalance = tempBalance;
+            currentAccruedInterest = accruedInterestPool; 
+
+            document.getElementById('initialAmount').value = formatNumber(loanDetails.amount);
+            document.getElementById('interestRate').value = loanDetails.rate;
+            document.getElementById('startDate').value = loanDetails.startDate;
+            document.getElementById('currentRate').value = history.length > 0 ? history[history.length - 1].rate : loanDetails.rate;
+
+            updateUI();
+            saveData();
+
+            if (!skipSync) {
+                syncToGoogleSheets();
+            }
+        }
+
+        // --- ระบบ Popup ลบข้อมูล ---
+        function deleteRecord(id) {
+            recordToDeleteId = id;
+            const modal = document.getElementById('deleteModal');
+            const content = document.getElementById('deleteModalContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            const content = document.getElementById('deleteModalContent');
+            
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                recordToDeleteId = null;
+            }, 300);
+        }
+
+        function confirmDelete() {
+            if (recordToDeleteId !== null) {
+                history = history.filter(r => r.id !== recordToDeleteId);
+                closeDeleteModal();
+                recalculateHistory(); // เมื่อคำนวณใหม่ มันจะเรียก syncToGoogleSheets อัตโนมัติและแสดง popup โหลดหมุนๆ
+            }
+        }
+
+        // --- ระบบแก้ไขข้อมูล ---
+        function editRecord(id) {
+            let rec = history.find(r => r.id === id);
+            if(!rec) return;
+
+            document.getElementById('paymentType').value = rec.type;
+            document.getElementById('paymentDate').value = rec.date;
+            document.getElementById('currentRate').value = rec.rate;
+            document.getElementById('paymentAmount').value = formatNumber(rec.payment);
+            
+            currentEditId = id;
+            
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = 'บันทึกการแก้ไข';
+            btn.classList.replace('bg-emerald-500', 'bg-amber-500');
+            btn.classList.replace('hover:bg-emerald-600', 'hover:bg-amber-600');
+            btn.classList.replace('shadow-emerald-200', 'shadow-amber-200');
+            
+            document.getElementById('dashboardSection').scrollIntoView({behavior: "smooth"});
+        }
+
+        function updateUI() {
+            const tbody = document.getElementById('ledgerBody');
+            tbody.innerHTML = '';
+
+            let totalPrincipal = 0;
+            let totalInterest = 0;
+
+            let initialRow = `<tr class="bg-indigo-50/30 hover:bg-indigo-50/50 transition-colors">
+                <td class="py-4 px-5 text-slate-400 font-medium">0</td>
+                <td class="py-4 px-5 text-slate-600">${loanDetails.startDate}</td>
+                <td class="py-4 px-5 text-center text-slate-400">-</td>
+                <td class="py-4 px-5 text-right text-slate-400">-</td>
+                <td class="py-4 px-5 text-right text-slate-400">-</td>
+                <td class="py-4 px-5 text-right text-slate-400">-</td>
+                <td class="py-4 px-5 text-right font-bold text-indigo-600">${formatNumber(loanDetails.amount)}</td>
+                <td class="py-4 px-5 text-center text-slate-400">-</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', initialRow);
+
+            history.forEach(rec => {
+                totalPrincipal += rec.principal;
+                totalInterest += rec.interest;
+
+                let badge = rec.type === 'โปะบ้าน' ? '<span class="ml-2 text-[11px] font-semibold bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200 align-middle">โปะ</span>' : '';
+                let row = `<tr class="hover:bg-slate-50 transition-colors">
+                    <td class="py-4 px-5 text-slate-500 font-medium">${rec.id}</td>
+                    <td class="py-4 px-5 text-slate-700">${rec.date}</td>
+                    <td class="py-4 px-5 text-center text-slate-500">${rec.rate}%</td>
+                    <td class="py-4 px-5 text-right text-emerald-600 font-semibold">${formatNumber(rec.payment)} ${badge}</td>
+                    <td class="py-4 px-5 text-right text-rose-500">${formatNumber(rec.interest)}</td>
+                    <td class="py-4 px-5 text-right text-indigo-500">${formatNumber(rec.principal)}</td>
+                    <td class="py-4 px-5 text-right font-bold text-slate-800">${formatNumber(rec.balance)}</td>
+                    <td class="py-4 px-5 text-center whitespace-nowrap">
+                        <button onclick="editRecord(${rec.id})" class="text-slate-400 hover:text-amber-500 bg-slate-50 hover:bg-amber-50 p-2 md:p-1.5 rounded-lg mr-1 transition-all border border-transparent hover:border-amber-200" title="แก้ไข">
+                            <svg class="w-4 h-4 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                        <button onclick="deleteRecord(${rec.id})" class="text-slate-400 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 p-2 md:p-1.5 rounded-lg transition-all border border-transparent hover:border-rose-200" title="ลบ">
+                            <svg class="w-4 h-4 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            document.getElementById('dashBalance').innerText = formatNumber(currentBalance);
+            document.getElementById('dashPrincipal').innerText = formatNumber(totalPrincipal);
+            document.getElementById('dashInterest').innerText = formatNumber(totalInterest);
+
+            const progressPercent = ((loanDetails.amount - currentBalance) / loanDetails.amount) * 100;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('progressText').innerText = `${progressPercent.toFixed(1)}%`;
+
+            updateForecast();
+            drawChart(totalPrincipal, totalInterest);
+        }
+
+        function updateForecast() {
+            const forecastEl = document.getElementById('forecastText');
+            if(history.length === 0 || currentBalance <= 0) {
+                forecastEl.innerHTML = currentBalance <= 0 ? "<span class='text-emerald-600 font-semibold'>🎉 ยินดีด้วย! คุณผ่อนบ้านหมดแล้ว</span>" : "กรุณาเพิ่มรายการชำระเงินเพื่อดูพยากรณ์";
+                return;
+            }
+
+            let basePayment = 0;
+            for (let i = history.length - 1; i >= 0; i--) {
+                if (history[i].type === 'ปกติ') {
+                    basePayment = history[i].payment;
+                    break;
+                }
+            }
+            if (basePayment === 0) {
+                basePayment = history[history.length - 1].payment;
+            }
+
+            const currentRate = history[history.length - 1].rate;
+            const ratePerDay = (currentRate / 100) / 365;
+            
+            let simBalance = currentBalance;
+            let accruedInt = currentAccruedInterest;
+            let months = 0;
+            const assumedDaysPerMonth = 30.416; 
+
+            const avgMonthlyInterest = simBalance * ratePerDay * assumedDaysPerMonth;
+            
+            if(basePayment <= avgMonthlyInterest) {
+                forecastEl.innerHTML = `<span class="text-rose-500 font-medium">ค่างวดปกติล่าสุด (${formatNumber(basePayment)} บ.) น้อยกว่าดอกเบี้ยรายเดือน (จะผ่อนไม่หมด)</span>`;
+                return;
+            }
+
+            while(simBalance > 0 && months < 1200) {
+                let newInt = simBalance * ratePerDay * assumedDaysPerMonth;
+                accruedInt += newInt;
+                
+                let principal = 0;
+                if(basePayment >= accruedInt) {
+                    principal = basePayment - accruedInt;
+                    accruedInt = 0;
+                } else {
+                    principal = 0;
+                    accruedInt -= basePayment;
+                }
+
+                if(principal > simBalance) principal = simBalance;
+                simBalance -= principal;
+                months++;
+            }
+
+            let y = Math.floor(months / 12);
+            let m = months % 12;
+            forecastEl.innerHTML = `หากชำระปกติต่อด้วยยอด <b class="text-indigo-900">${formatNumber(basePayment)} บ./เดือน</b> (อิงดอกเบี้ย ${currentRate}%)<br>คาดว่าจะผ่อนหมดในอีกประมาณ <b class="text-indigo-600 text-base">${y > 0 ? y + ' ปี ' : ''}${m} เดือน</b>`;
+        }
+
+        function drawChart(principal, interest) {
+            const ctx = document.getElementById('ratioChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy(); 
+
+            if (principal === 0 && interest === 0) {
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: ['ยังไม่มีข้อมูล'], datasets: [{ data: [1], backgroundColor: ['#f1f5f9'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                });
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['เงินต้นที่ตัดไป', 'ดอกเบี้ยที่จ่ายไป'],
+                    datasets: [{
+                        data: [principal, interest],
+                        backgroundColor: ['#10b981', '#f43f5e'], 
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 10, usePointStyle: true, padding: 20, font: { family: 'Prompt', size: 13 } } },
+                        tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', padding: 12, cornerRadius: 8, callbacks: { label: function(context) {
+                            let value = context.raw;
+                            return ' ' + context.label + ': ' + formatNumber(value) + ' บ.';
+                        }}}
+                    }
+                }
+            });
+        }
+
+        // --- ฟังก์ชันควบคุม Overlay Loading ---
+        function showLoading(text) {
+            const overlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').innerText = text;
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        // --- ระบบ Sync และ โหลดข้อมูล ---
+        async function syncToGoogleSheets() {
+            const gasUrl = SCRIPT_URL.trim();
+            if (!gasUrl) return;
+
+            showLoading('กำลังซิงค์ข้อมูลกับระบบ...'); // โชว์ Popup โหลด
+            const payload = { action: 'sync', loanDetails: loanDetails, history: history };
+
+            try {
+                await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: JSON.stringify(payload) });
+                hideLoading(); // ซ่อน Popup
+                showMessage('ซิงค์ข้อมูลสำเร็จ', 'success');
+                setTimeout(() => { document.getElementById('statusMessage').classList.add('hidden'); }, 2000); 
+            } catch (error) {
+                console.error(error);
+                hideLoading();
+                showMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets', 'error');
+            }
+        }
+
+        async function loadFromGoogleSheets() {
+            const gasUrl = SCRIPT_URL.trim();
+            if (!gasUrl) {
+                showMessage('กรุณาใส่ SCRIPT_URL ในโค้ดก่อนทำการโหลดข้อมูล', 'error');
+                return;
+            }
+            
+            showLoading('กำลังดาวน์โหลดข้อมูล...'); // โชว์ Popup โหลด
+            
+            try {
+                const response = await fetch(gasUrl);
+                const result = await response.json();
+                
+                hideLoading(); // ซ่อน Popup
+                
+                if (result.status === 'success') {
+                    loanDetails = result.loanDetails;
+                    history = result.history;
+                    showDashboard();
+                    recalculateHistory(true); 
+                    showMessage('ดาวน์โหลดข้อมูลสำเร็จ!', 'success');
+                    setTimeout(() => { document.getElementById('statusMessage').classList.add('hidden'); }, 2000);
+                } else if (result.status === 'empty') {
+                    showMessage('ยังไม่มีข้อมูลประวัติใน Google Sheets', 'info');
+                } else {
+                    showMessage('ข้อผิดพลาด: ' + result.message, 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage('โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบ SCRIPT_URL', 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const msgBox = document.getElementById('statusMessage');
+            msgBox.innerHTML = text;
+            msgBox.classList.remove('hidden', 'bg-rose-50', 'text-rose-600', 'bg-emerald-50', 'text-emerald-600', 'bg-indigo-50', 'text-indigo-600');
+            if (type === 'error') msgBox.classList.add('bg-rose-50', 'text-rose-600');
+            else if (type === 'success') msgBox.classList.add('bg-emerald-50', 'text-emerald-600');
+            else if (type === 'info') msgBox.classList.add('bg-indigo-50', 'text-indigo-600');
+        }
+    </script>
+</body>
+</html>
