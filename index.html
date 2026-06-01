@@ -5,31 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>TTB Mortgage Tracker</title>
 
-   <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
+     <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
     <link rel="apple-touch-icon" href="home-loan.jpg">
     <link rel="icon" type="image/jpg" href="home-loan.jpg">
     <meta name="apple-mobile-web-app-title" content="Homeloan">
-      
+   
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
   :root {
-    --navy: #0C2340;
-    --navy2: #1B4F72;
-    --blue: #2980B9;
-    --sky: #AED6F1;
-    --sky2: #D6EAF8;
-    --gold: #D4A017;
-    --gold2: #F5CBA7;
-    --green: #1E8449;
-    --red: #C0392B;
-    --bg: #F4F6F9;
+    /* Modern Color Palette */
+    --navy: #0F172A;        /* Slate 900 */
+    --navy2: #1E293B;       /* Slate 800 */
+    --blue: #0284C7;        /* Sky 600 */
+    --blue-hover: #0369A1;  /* Sky 700 */
+    --sky: #38BDF8;         /* Sky 400 */
+    --sky2: #F0F9FF;        /* Sky 50 */
+    --gold: #F59E0B;        /* Amber 500 */
+    --gold2: #FEF3C7;       /* Amber 100 */
+    --orange: #EA580C;      /* Orange 600 */
+    --green: #10B981;       /* Emerald 500 */
+    --green2: #D1FAE5;      /* Emerald 100 */
+    --red: #EF4444;         /* Red 500 */
+    --red2: #FEE2E2;        /* Red 100 */
+    
+    --bg: #F8FAFC;          /* Slate 50 */
     --card: #FFFFFF;
-    --text: #1a2332;
-    --muted: #6b7a8d;
-    --border: #DDE3EB;
-    --radius: 12px;
-    --shadow: 0 2px 12px rgba(12,35,64,0.08);
+    --text: #334155;        /* Slate 700 */
+    --text-dark: #0F172A;   /* Slate 900 */
+    --muted: #64748B;       /* Slate 500 */
+    --border: #E2E8F0;      /* Slate 200 */
+    
+    --radius: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.025);
+    --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,283 +51,307 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    font-size: 14px;
+    font-size: 15px;
     -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
   }
 
   /* === HEADER === */
   .header {
-    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+    background: var(--navy);
     color: #fff;
-    padding: 18px 24px 16px;
+    padding: 20px 24px 24px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    gap: 16px;
     position: sticky; top: 0; z-index: 100;
   }
   .header-logo {
-    width: 44px; height: 44px;
-    background: var(--gold);
-    border-radius: 10px;
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--gold), var(--orange));
+    border-radius: var(--radius-md);
     display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 600; color: var(--navy);
+    font-size: 24px; font-weight: 700; color: #fff;
+    box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
     flex-shrink: 0;
   }
-  .header-info {
-    flex: 1; min-width: 0;
-  }
-  .header-info h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .header-info p  { font-size: 12px; opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-info { flex: 1; min-width: 0; }
+  .header-info h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #F8FAFC;}
+  .header-info p  { font-size: 13px; color: #94A3B8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .header-status {
     margin-left: auto;
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; opacity: 0.85; flex-shrink: 0;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #CBD5E1; font-weight: 500;
+    background: rgba(255,255,255,0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
   }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: #2ECC71; animation: pulse 2s infinite; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
   /* === TABS === */
+  .tabs-container {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 92px; z-index: 99;
+    box-shadow: var(--shadow-sm);
+  }
   .tabs {
-    display: flex; gap: 0;
-    background: var(--navy);
-    padding: 0 24px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; gap: 8px;
+    padding: 12px 24px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    max-width: 1000px; margin: 0 auto;
   }
-  .tabs::-webkit-scrollbar { display: none; } /* Safari/Chrome */
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    padding: 12px 18px;
-    font-size: 13px; font-weight: 500;
-    color: rgba(255,255,255,0.55);
+    padding: 10px 20px;
+    font-size: 14px; font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border-radius: 100px;
     cursor: pointer;
-    border-bottom: 2.5px solid transparent;
-    transition: all .2s;
+    transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
+    border: none;
+    outline: none;
   }
-  .tab:hover { color: rgba(255,255,255,0.85); }
-  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab:hover { color: var(--navy); background: var(--bg); }
+  .tab.active { background: var(--sky2); color: var(--blue); box-shadow: inset 0 0 0 1px var(--sky); }
 
   /* === CONTENT === */
-  .content { padding: 20px 24px; max-width: 1000px; margin: 0 auto; }
-  .page { display: none; animation: fadeIn 0.3s ease; }
+  .content { padding: 32px 24px; max-width: 1000px; margin: 0 auto; }
+  .page { display: none; animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
   .page.active { display: block; }
-  @keyframes fadeIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes slideUpFade { from{opacity:0; transform:translateY(15px);} to{opacity:1; transform:translateY(0);} }
 
   /* === CARDS === */
   .card {
     background: var(--card);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    border: 1px solid var(--border);
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(226, 232, 240, 0.6);
   }
   .card-title {
-    font-size: 14px; font-weight: 600; color: var(--navy2);
-    text-transform: uppercase; letter-spacing: 0.5px;
-    margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
+    font-size: 16px; font-weight: 600; color: var(--text-dark);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
   }
   .card-title::before {
     content: '';
-    width: 3px; height: 16px;
-    background: var(--gold);
-    border-radius: 2px;
+    width: 4px; height: 18px;
+    background: var(--blue);
+    border-radius: 4px;
   }
 
   /* === SUMMARY GRID === */
-  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .metric {
-    background: var(--card);
-    border-radius: var(--radius);
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
     border: 1px solid var(--border);
-    padding: 16px;
-    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
   }
-  .metric-label { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0.3px; margin-bottom: 8px; }
-  .metric-value { font-size: 24px; font-weight: 600; color: var(--navy); font-family: 'IBM Plex Mono', monospace; line-height: 1.1; }
+  .metric:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .metric-icon { font-size: 24px; margin-bottom: 12px; }
+  .metric-label { font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 600; color: var(--text-dark); font-family: 'IBM Plex Mono', monospace; line-height: 1.1; letter-spacing: -0.5px;}
   .metric-value.red   { color: var(--red); }
   .metric-value.green { color: var(--green); }
   .metric-value.gold  { color: var(--gold); }
-  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .metric-sub { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 400;}
 
   /* === PROGRESS BAR === */
-  .progress-wrap { background: var(--sky2); border-radius: 8px; height: 10px; overflow: hidden; margin: 8px 0; }
-  .progress-bar  { height: 100%; background: linear-gradient(90deg, var(--navy2), var(--blue)); border-radius: 8px; transition: width .8s ease; }
+  .progress-wrap { background: var(--border); border-radius: 100px; height: 8px; overflow: hidden; margin: 12px 0; }
+  .progress-bar  { height: 100%; background: linear-gradient(90deg, var(--sky), var(--blue)); border-radius: 100px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(2, 132, 199, 0.4);}
 
   /* === ACCOUNT CARDS === */
-  .account-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .account-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
   .acc-card {
     background: var(--card);
-    border-radius: var(--radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
-    padding: 18px;
-    box-shadow: var(--shadow);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
     position: relative; overflow: hidden;
+    transition: box-shadow 0.2s;
   }
+  .acc-card:hover { box-shadow: var(--shadow); }
   .acc-card::before {
     content: '';
     position: absolute; top: 0; left: 0; right: 0; height: 4px;
   }
-  .acc-card.home::before   { background: linear-gradient(90deg, var(--navy2), var(--blue)); }
-  .acc-card.extra::before  { background: linear-gradient(90deg, var(--gold), #E67E22); }
-  .acc-card.mrta::before   { background: linear-gradient(90deg, var(--green), #27AE60); }
-  .acc-name    { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 12px; }
-  .acc-balance { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; color: var(--navy2); line-height: 1.2; }
-  .acc-orig    { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .acc-rate    { font-size: 13px; color: var(--blue); margin-top: 10px; font-weight: 500; }
-  .acc-mini-prog { margin-top: 12px; }
+  .acc-card.home::before   { background: linear-gradient(90deg, var(--sky), var(--blue)); }
+  .acc-card.extra::before  { background: linear-gradient(90deg, var(--gold), var(--orange)); }
+  .acc-card.mrta::before   { background: linear-gradient(90deg, var(--green2), var(--green)); }
+  .acc-name    { font-size: 16px; font-weight: 600; color: var(--text-dark); margin-bottom: 12px; }
+  .acc-balance { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: var(--blue); line-height: 1.2; letter-spacing: -0.5px;}
+  .acc-orig    { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .acc-rate    { font-size: 14px; color: var(--text); margin-top: 16px; font-weight: 500; display: inline-block; background: var(--bg); padding: 4px 12px; border-radius: 6px;}
+  .acc-mini-prog { margin-top: 16px; }
 
   /* === FORM === */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
   .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 13px; font-weight: 500; color: var(--muted); }
+  label { font-size: 14px; font-weight: 500; color: var(--text-dark); }
   input, select, textarea {
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
     font-size: 15px;
     font-family: inherit;
-    color: var(--text);
+    color: var(--text-dark);
     width: 100%;
     transition: all .2s;
-    appearance: none; /* Native select looks better on mobile */
+    appearance: none;
   }
-  select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1); }
-  textarea { resize: vertical; min-height: 80px; }
+  select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 16px center; background-size: 16px; padding-right: 44px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 4px var(--sky2); }
+  textarea { resize: vertical; min-height: 100px; }
 
   /* === BUTTONS === */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 11px 20px;
-    border-radius: 8px;
-    font-size: 14px; font-weight: 600;
+    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 600;
     cursor: pointer; border: none;
     transition: all .2s;
     font-family: inherit;
   }
-  .btn-primary { background: var(--navy2); color: #fff; }
-  .btn-primary:hover { background: var(--navy); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(27, 79, 114, 0.2); }
-  .btn-gold { background: var(--gold); color: var(--navy); }
-  .btn-gold:hover { background: #B8860B; }
-  .btn-outline { background: transparent; color: var(--navy2); border: 1.5px solid var(--navy2); }
-  .btn-outline:hover { background: var(--sky2); }
-  .btn-danger  { background: transparent; color: var(--red); border: 1.5px solid var(--red); font-size: 12px; padding: 6px 14px; }
-  .btn-danger:hover  { background: #FDECEA; }
-  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2); }
+  .btn-primary:hover { background: var(--blue-hover); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); }
+  .btn-gold { background: var(--gold); color: var(--text-dark); }
+  .btn-gold:hover { background: #D97706; }
+  .btn-outline { background: transparent; color: var(--text-dark); border: 1.5px solid var(--border); }
+  .btn-outline:hover { background: var(--bg); border-color: var(--muted); }
+  .btn-danger  { background: transparent; color: var(--red); border: 1.5px solid var(--red2); font-size: 13px; padding: 6px 16px; border-radius: 100px;}
+  .btn-danger:hover  { background: var(--red2); }
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
 
   /* === TABLE === */
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: #F8F9FA; color: var(--navy2); font-weight: 600; padding: 12px 14px; text-align: left; white-space: nowrap; border-bottom: 2px solid var(--border); }
-  td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--card);}
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: var(--bg); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 20px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  td { padding: 16px 20px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-dark); }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #F4F6F9; }
-  .num { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+  tr:hover td { background: var(--bg); }
+  .num { font-family: 'IBM Plex Mono', monospace; text-align: right; font-weight: 500; }
   .badge {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 3px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap;
+    padding: 4px 12px; border-radius: 100px;
+    font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap;
   }
-  .badge-home  { background: var(--sky2); color: var(--navy2); }
-  .badge-extra { background: var(--gold2); color: #7D5A00; }
-  .badge-mrta  { background: #D5F5E3; color: #1E8449; }
+  .badge-home  { background: var(--sky2); color: var(--blue); }
+  .badge-extra { background: var(--gold2); color: var(--orange); }
+  .badge-mrta  { background: var(--green2); color: var(--green); }
 
   /* === FILTER BAR === */
-  .filter-bar, .amo-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-  .filter-bar select, .filter-bar input, .amo-controls select, .amo-controls input { width: auto; min-width: 160px; flex: 1; }
+  .filter-bar, .amo-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+  .filter-bar select, .filter-bar input, .amo-controls select, .amo-controls input { width: auto; min-width: 180px; flex: 1; }
   .filter-bar button, .amo-controls button { flex-shrink: 0; }
 
   /* === SETTINGS === */
-  .settings-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-  .settings-row label { min-width: 150px; font-size: 14px; font-weight: 500; color: var(--navy2); }
+  .settings-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .settings-row label { min-width: 150px; font-size: 14px; font-weight: 500; color: var(--text-dark); }
   .settings-row input, .settings-row select { flex: 1; min-width: 200px; max-width: 500px; }
 
   /* === TOAST === */
-  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .toast-wrap { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
   .toast {
     background: var(--navy);
     color: #fff;
-    padding: 14px 20px;
-    border-radius: 10px;
-    font-size: 14px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    animation: slideIn .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    max-width: 350px;
+    padding: 14px 24px;
+    border-radius: 100px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: var(--shadow-float);
+    animation: slideUp .3s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex; align-items: center; gap: 10px; pointer-events: auto;
+    white-space: nowrap;
   }
-  .toast.success { background: var(--green); }
-  .toast.error   { background: var(--red); }
-  @keyframes slideIn { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .toast.success { background: var(--navy); border: 1px solid var(--green); color: var(--green2);}
+  .toast.error   { background: var(--red); color: #fff;}
+  @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
 
   /* === LOADING === */
-  .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 15px; }
+  .loading { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 15px; }
   .spinner {
-    width: 34px; height: 34px; border: 3px solid var(--sky);
+    width: 36px; height: 36px; border: 3px solid var(--border);
     border-top-color: var(--blue); border-radius: 50%;
-    animation: spin .8s linear infinite; display: inline-block; margin-bottom: 12px;
+    animation: spin .8s linear infinite; display: inline-block; margin-bottom: 16px;
   }
   @keyframes spin { to{transform:rotate(360deg)} }
 
   /* === INFO === */
   .info-box {
     background: var(--sky2);
-    border-left: 4px solid var(--blue);
-    border-radius: 8px;
-    padding: 14px 18px;
+    border: 1px solid var(--sky);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
     font-size: 14px;
-    margin-bottom: 16px;
-    color: var(--navy2);
-    line-height: 1.5;
+    margin-bottom: 20px;
+    color: var(--blue-hover);
+    line-height: 1.6;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .info-box-danger {
+      background: var(--red2);
+      border-color: #FCA5A5;
+      color: var(--red);
   }
 
   /* === MODAL-LIKE SECTION === */
   .section-title {
-    font-size: 16px; font-weight: 600; color: var(--navy);
-    margin-bottom: 16px; padding-bottom: 12px;
-    border-bottom: 1.5px solid var(--border);
+    font-size: 18px; font-weight: 600; color: var(--text-dark);
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
   }
 
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 15px; }
+  .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 15px; background: var(--bg); border-radius: var(--radius-md); border: 1px dashed var(--border);}
 
   /* =========================================
      📱 MOBILE RESPONSIVE (MAX-WIDTH: 768px)
      ========================================= */
   @media (max-width: 768px) {
-    .header { padding: 14px 16px; gap: 10px; }
-    .header-logo { width: 38px; height: 38px; font-size: 18px; }
-    .header-info h1 { font-size: 15px; }
-    .header-info p  { font-size: 11px; }
+    .header { padding: 16px; gap: 12px; }
+    .header-logo { width: 40px; height: 40px; font-size: 20px; border-radius: 10px;}
+    .header-info h1 { font-size: 16px; }
+    .header-info p  { font-size: 12px; }
     
-    .content { padding: 16px 14px; }
-    .card { padding: 16px; margin-bottom: 14px; }
+    .tabs-container { top: 72px; }
+    .tabs { padding: 10px 16px; gap: 4px;}
+    .tab { padding: 8px 16px; font-size: 13px; }
     
-    .summary-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-    .metric { padding: 14px; }
-    .metric-value { font-size: 20px; }
+    .content { padding: 20px 16px; }
+    .card { padding: 20px; margin-bottom: 16px; border-radius: var(--radius-md);}
     
-    .form-grid { grid-template-columns: 1fr; gap: 12px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .metric { padding: 16px; }
+    .metric-value { font-size: 22px; }
     
-    .filter-bar, .amo-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-grid { grid-template-columns: 1fr; gap: 16px; }
+    
+    .filter-bar, .amo-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .filter-bar select, .amo-controls select { grid-column: 1 / -1; width: 100%; min-width: unset; }
     .filter-bar input[type="month"] { grid-column: 1 / -1; width: 100%; min-width: unset; }
     .filter-bar button, .amo-controls button { width: 100%; }
     .amo-controls > div { grid-column: 1 / -1; width: 100%; }
     
     .settings-row { flex-direction: column; align-items: stretch; gap: 8px; }
-    .settings-row label { margin-bottom: 2px; }
+    .settings-row label { margin-bottom: 4px; font-size: 13px;}
     .settings-row input, .settings-row select { max-width: 100%; }
     
     .account-cards { grid-template-columns: 1fr; }
     
-    .toast-wrap { left: 16px; right: 16px; bottom: 20px; align-items: center; }
-    .toast { width: 100%; max-width: 100%; justify-content: center; text-align: center; }
+    .toast-wrap { bottom: 24px; width: 90%; }
+    .toast { width: 100%; justify-content: center; }
   }
 </style>
 </head>
@@ -334,12 +371,14 @@
 </div>
 
 <!-- TABS -->
-<div class="tabs">
-  <div class="tab active" onclick="showPage('dashboard')">ภาพรวม</div>
-  <div class="tab" onclick="showPage('add')">บันทึกชำระ</div>
-  <div class="tab" onclick="showPage('history')">ประวัติ</div>
-  <div class="tab" onclick="showPage('amortize')">ตารางผ่อน</div>
-  <div class="tab" onclick="showPage('settings')">ตั้งค่า</div>
+<div class="tabs-container">
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('dashboard')">ภาพรวม</button>
+    <button class="tab" onclick="showPage('add')">บันทึกชำระ</button>
+    <button class="tab" onclick="showPage('history')">ประวัติ</button>
+    <button class="tab" onclick="showPage('amortize')">ตารางผ่อน</button>
+    <button class="tab" onclick="showPage('settings')">ตั้งค่า</button>
+  </div>
 </div>
 
 <!-- CONTENT -->
@@ -368,11 +407,11 @@
           <input type="date" id="f_date"/>
         </div>
         <div class="form-group full" id="minPayHint" style="display:none;">
-          <div style="background:var(--sky2); border-left:3px solid var(--blue); border-radius:8px; padding:12px 14px; font-size:13px; color:var(--navy2); display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+          <div style="background:var(--sky2); border: 1px solid var(--sky); border-radius:var(--radius-sm); padding:16px; font-size:14px; color:var(--blue-hover); display:flex; align-items:center; gap:12px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 180px;">💡 ยอดชำระขั้นต่ำบัญชีนี้:
-              <strong id="minPayValue" style="font-family:'IBM Plex Mono',monospace; font-size:15px; margin:0 4px;"></strong> บาท/งวด
+              <strong id="minPayValue" style="font-family:'IBM Plex Mono',monospace; font-size:16px; margin:0 4px; color: var(--blue);"></strong> บาท/งวด
             </div>
-            <button type="button" class="btn btn-sm" style="background:var(--navy2); color:#fff;" onclick="fillMinPay()">ใช้ยอดขั้นต่ำ</button>
+            <button type="button" class="btn btn-sm" style="background:var(--blue); color:#fff;" onclick="fillMinPay()">ใช้ยอดขั้นต่ำ</button>
           </div>
         </div>
         <div class="form-group">
@@ -385,22 +424,22 @@
         </div>
         <div class="form-group">
           <label>เงินต้น (บาท)</label>
-          <input type="number" id="f_principal" placeholder="คำนวณอัตโนมัติ" step="0.01" readonly style="background:#f8f9fa; cursor: not-allowed;"/>
+          <input type="number" id="f_principal" placeholder="คำนวณอัตโนมัติ" step="0.01" readonly style="background:var(--bg); cursor: not-allowed;"/>
         </div>
         <div class="form-group">
           <label>ยอดคงเหลือหลังชำระ (ประมาณ)</label>
-          <input type="text" id="f_remaining" readonly style="background:#f8f9fa; cursor: not-allowed; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--navy2)"/>
+          <input type="text" id="f_remaining" readonly style="background:var(--bg); cursor: not-allowed; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--blue)"/>
         </div>
         <div class="form-group full">
           <label>หมายเหตุ</label>
           <textarea id="f_note" placeholder="ข้อมูลเพิ่มเติม..."></textarea>
         </div>
       </div>
-      <div style="display:flex; gap:12px; margin-top:20px; flex-wrap: wrap;">
+      <div style="display:flex; gap:16px; margin-top:24px; flex-wrap: wrap;">
         <button class="btn btn-primary" style="flex:1; min-width: 180px;" onclick="submitPayment()">💾 บันทึกการชำระ</button>
         <button class="btn btn-outline" style="flex:1; min-width: 120px;" onclick="clearForm()">ล้างข้อมูล</button>
       </div>
-      <div id="addResult" style="margin-top:14px;"></div>
+      <div id="addResult" style="margin-top:16px;"></div>
     </div>
   </div>
 
@@ -414,7 +453,7 @@
         </select>
         <input type="month" id="hist_month" onchange="loadHistory()" placeholder="เดือน"/>
         <button class="btn btn-outline" onclick="loadHistory()">🔄 รีเฟรช</button>
-        <button class="btn" style="background:var(--sky2); color:var(--navy2);" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-outline" style="color:var(--text-dark); border-color: var(--border);" onclick="exportCSV()">⬇ Export CSV</button>
       </div>
       <div id="historyArea">
         <div class="loading"><div class="spinner"></div><br>กำลังโหลด...</div>
@@ -430,8 +469,8 @@
         <select id="amo_account" onchange="loadAmortize()">
           <option value="">ทุกบัญชี</option>
         </select>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="font-size:13px; white-space:nowrap; color:var(--muted);">จำนวนงวด:</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <label style="font-size:14px; white-space:nowrap; color:var(--muted); font-weight: 500;">จำนวนงวด:</label>
           <input type="number" id="amo_months" value="12" min="1" max="360" style="flex:1; text-align:center;" onchange="loadAmortize()"/>
         </div>
         <button class="btn btn-outline" onclick="loadAmortize()">คำนวณใหม่</button>
@@ -447,18 +486,21 @@
     <div class="card">
       <div class="section-title">ตั้งค่า GAS Endpoint</div>
       <div class="info-box">
-        วาง URL ของ Google Apps Script Web App ที่ Deploy แล้ว<br>
-        <small style="opacity:0.8; word-break:break-all;">ตัวอย่าง: https://script.google.com/macros/s/AKfycb.../exec</small>
+        <span style="font-size: 20px;">🔗</span>
+        <div>
+          <strong>วาง URL ของ Google Apps Script Web App ที่ Deploy แล้ว</strong><br>
+          <small style="opacity:0.8; word-break:break-all; font-family:'IBM Plex Mono', monospace;">ตัวอย่าง: https://script.google.com/macros/s/AKfycb.../exec</small>
+        </div>
       </div>
       <div class="settings-row">
         <label>GAS Web App URL</label>
         <input type="url" id="set_gasUrl" placeholder="https://script.google.com/..."/>
       </div>
-      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
         <button class="btn btn-primary" style="flex:1; min-width: 150px;" onclick="saveSettings()">💾 บันทึก URL</button>
-        <button class="btn btn-outline" style="flex:1; min-width: 150px;" onclick="testConnection()">🔗 ทดสอบเชื่อมต่อ</button>
+        <button class="btn btn-outline" style="flex:1; min-width: 150px;" onclick="testConnection()">⚡ ทดสอบเชื่อมต่อ</button>
       </div>
-      <div id="settingsResult" style="margin-top:16px;"></div>
+      <div id="settingsResult" style="margin-top:20px;"></div>
     </div>
 
     <div class="card">
@@ -468,14 +510,14 @@
 
     <div class="card">
       <div class="section-title">วิธีติดตั้ง (คำแนะนำ)</div>
-      <ol style="line-height:2; padding-left:20px; font-size:14px; color:var(--text);">
+      <ol style="line-height:2.2; padding-left:24px; font-size:15px; color:var(--text);">
         <li>เปิด <strong>Google Sheets</strong> สร้างสเปรดชีตใหม่</li>
-        <li>เปิด <strong>Extensions → Apps Script</strong></li>
-        <li>วางโค้ดจากไฟล์ <code>Code.gs</code> ที่ดาวน์โหลดไป</li>
-        <li>บันทึก แล้วรัน <code>initSheets()</code> ครั้งแรกเพื่อสร้างชีท</li>
-        <li>ไปที่ <strong>Deploy → New deployment → Web App</strong></li>
-        <li>ตั้ง <em>Execute as: Me</em>, <em>Who has access: Anyone</em></li>
-        <li>คัดลอก URL มาวางในช่อง GAS Web App URL ด้านบน</li>
+        <li>เปิดเมนู <strong>Extensions → Apps Script</strong></li>
+        <li>วางโค้ดจากไฟล์ <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">Code.gs</code> ที่ดาวน์โหลดไป</li>
+        <li>บันทึก แล้วรันฟังก์ชัน <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">initSheets()</code> ครั้งแรกเพื่อสร้างโครงสร้างชีท</li>
+        <li>ไปที่ปุ่มสีฟ้ามุมขวาบน <strong>Deploy → New deployment → Web App</strong></li>
+        <li>ตั้งค่า <em>Execute as: Me</em> และ <em>Who has access: Anyone</em></li>
+        <li>คัดลอก URL ที่ได้ มาวางในช่อง GAS Web App URL ด้านบน</li>
       </ol>
     </div>
   </div>
@@ -514,9 +556,14 @@ function toast(msg, type='') {
   const w = document.getElementById('toastWrap');
   const t = document.createElement('div');
   t.className = 'toast ' + type;
-  t.textContent = msg;
+  t.innerHTML = (type === 'success' ? '✅ ' : type === 'error' ? '⚠️ ' : '') + msg;
   w.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateY(20px)';
+      t.style.transition = 'all 0.3s ease';
+      setTimeout(() => t.remove(), 300);
+  }, 3500);
 }
 
 function showPage(name) {
@@ -575,7 +622,8 @@ async function loadDashboard() {
   if (!GAS_URL) {
     el.innerHTML = `
       <div class="info-box">
-        ⚙️ ยังไม่ได้ตั้งค่า GAS URL — ไปที่แท็บ <strong>"ตั้งค่า"</strong> เพื่อเชื่อมต่อกับ Google Sheet
+        <span style="font-size:20px;">⚙️</span>
+        <div>ยังไม่ได้ตั้งค่า GAS URL — ไปที่แท็บ <strong>"ตั้งค่า"</strong> เพื่อเชื่อมต่อกับ Google Sheet</div>
       </div>
       <div class="card">
         <div class="card-title">ข้อมูลเริ่มต้น</div>
@@ -596,42 +644,47 @@ async function loadDashboard() {
     el.innerHTML = `
       <div class="summary-grid">
         <div class="metric">
+          <div class="metric-icon">🏦</div>
           <div class="metric-label">ยอดกู้รวมทั้งหมด</div>
           <div class="metric-value">${fmt(s.totalOriginal)}</div>
           <div class="metric-sub">บาท</div>
         </div>
         <div class="metric">
+          <div class="metric-icon">📉</div>
           <div class="metric-label">ยอดคงเหลือรวม</div>
           <div class="metric-value red">${fmt(s.totalRemaining)}</div>
           <div class="metric-sub">บาท</div>
         </div>
         <div class="metric">
+          <div class="metric-icon">✅</div>
           <div class="metric-label">ชำระแล้วรวม</div>
           <div class="metric-value green">${fmt(s.totalPaid)}</div>
           <div class="metric-sub">${s.paymentCount} งวด</div>
         </div>
         <div class="metric">
+          <div class="metric-icon">🔥</div>
           <div class="metric-label">ดอกเบี้ยที่จ่ายไปแล้ว</div>
           <div class="metric-value gold">${fmt(s.totalInterest)}</div>
           <div class="metric-sub">บาท</div>
         </div>
         <div class="metric">
+          <div class="metric-icon">💳</div>
           <div class="metric-label">ยอดชำระขั้นต่ำรวม/งวด</div>
-          <div class="metric-value" style="color:var(--navy2);">${fmt(10500+800+300)}</div>
+          <div class="metric-value" style="color:var(--blue);">${fmt(10500+800+300)}</div>
           <div class="metric-sub">บาท (3 บัญชีรวมกัน)</div>
         </div>
       </div>
       <div class="card">
         <div class="card-title">ความคืบหน้ารวม</div>
-        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:8px; font-weight: 500;">
-          <span>ชำระแล้ว ${s.progressPercent.toFixed(2)}%</span>
-          <span>เหลือ ${(100 - s.progressPercent).toFixed(2)}%</span>
+        <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text); margin-bottom:12px; font-weight: 500;">
+          <span>ชำระแล้ว <span style="color:var(--green);">${s.progressPercent.toFixed(2)}%</span></span>
+          <span>เหลือ <span style="color:var(--muted);">${(100 - s.progressPercent).toFixed(2)}%</span></span>
         </div>
         <div class="progress-wrap">
           <div class="progress-bar" style="width:${Math.min(s.progressPercent, 100)}%"></div>
         </div>
-        <div style="font-size:12px; color:var(--muted); margin-top:10px;">
-          ลดเงินต้นไปแล้ว: <strong style="color:var(--navy2);">${fmt(s.totalPrincipal)} บาท</strong>
+        <div style="font-size:13px; color:var(--muted); margin-top:14px;">
+          ลดเงินต้นไปแล้ว: <strong style="color:var(--text-dark); font-size:14px;">${fmt(s.totalPrincipal)} บาท</strong>
         </div>
       </div>
       <div class="card">
@@ -642,16 +695,21 @@ async function loadDashboard() {
     document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
   } catch(e) {
     el.innerHTML = `
-      <div class="info-box" style="border-color:var(--red); background:#FDECEA; color:var(--red); line-height:1.6;">
-        ❌ <strong>เชื่อมต่อไม่สำเร็จ</strong><br>
-        <span style="font-size:13px; color:#7B241C;">${e.message}</span>
+      <div class="info-box info-box-danger">
+        <span style="font-size:20px;">❌</span>
+        <div>
+            <strong>เชื่อมต่อไม่สำเร็จ</strong><br>
+            <span style="font-size:13px; opacity:0.9;">${e.message}</span>
+        </div>
       </div>
-      <div class="info-box" style="line-height:1.8; font-size:13px;">
-        <strong>✅ วิธีแก้ปัญหา (ทำตามลำดับ):</strong><br>
-        1. เปิดลิงก์นี้ในหน้าต่างใหม่ 1 ครั้ง แล้วกด Allow หรือ Sign in Google:<br>
-        <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--blue); word-break:break-all; font-weight:500;">คลิกที่นี่เพื่อยืนยันสิทธิ์ Google</a><br>
-        2. กลับมาที่หน้านี้แล้วกดรีเฟรชเบราว์เซอร์<br>
-        3. หากยังไม่ได้ ใน Apps Script ให้กด Deploy ใหม่ โดยเลือก <strong>Who has access: Anyone</strong>
+      <div class="info-box" style="background:var(--card); border-color:var(--border); color:var(--text);">
+        <div>
+            <strong>💡 วิธีแก้ปัญหา (ทำตามลำดับ):</strong><br><br>
+            1. เปิดลิงก์นี้ในหน้าต่างใหม่ 1 ครั้ง แล้วกด Allow หรือ Sign in Google:<br>
+            <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--blue); word-break:break-all; font-weight:500; display:inline-block; margin-top:4px;">คลิกที่นี่เพื่อยืนยันสิทธิ์ Google</a><br><br>
+            2. กลับมาที่หน้านี้แล้วกดรีเฟรชเบราว์เซอร์<br>
+            3. หากยังไม่ได้ ใน Apps Script ให้กด Deploy ใหม่ โดยเลือก <strong>Who has access: Anyone</strong>
+        </div>
       </div>`;
     document.getElementById('connectionStatus').textContent = 'ไม่ได้เชื่อมต่อ';
   }
@@ -666,17 +724,16 @@ function renderAccountCards(accounts) {
         <div class="acc-name">${a.name}</div>
         <div class="acc-balance">${fmt(a.balance)}</div>
         <div class="acc-orig">ยอดเริ่มต้น: ${fmt(a.originalBalance)} บาท</div>
-        <div class="acc-rate">อัตราดอกเบี้ย ${a.rate}% ต่อปี</div>
-        <div style="margin-top:14px; display:flex; align-items:center; gap:8px;">
-          <span style="font-size:12px; color:var(--muted);">ชำระขั้นต่ำ/งวด</span>
-          <span style="font-size:14px; font-weight:600; font-family:'IBM Plex Mono',monospace; color:var(--navy); background:var(--sky2); padding:4px 12px; border-radius:20px;">${fmt(info.minPayment || 0)}</span>
-          <span style="font-size:12px; color:var(--muted);">บาท</span>
+        <div class="acc-rate">อัตราดอกเบี้ย <strong>${a.rate}%</strong> ต่อปี</div>
+        <div style="margin-top:20px; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:13px; color:var(--muted);">ชำระขั้นต่ำ</span>
+          <span style="font-size:15px; font-weight:600; font-family:'IBM Plex Mono',monospace; color:var(--text-dark); background:var(--bg); border: 1px solid var(--border); padding:6px 14px; border-radius:100px;">${fmt(info.minPayment || 0)} <span style="font-size:12px; color:var(--muted); font-weight:400; font-family:'IBM Plex Sans Thai', sans-serif;">บาท/งวด</span></span>
         </div>
         <div class="acc-mini-prog">
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:8px;">
             <span>ลดไปแล้ว ${pct.toFixed(1)}%</span>
           </div>
-          <div class="progress-wrap" style="height:8px;">
+          <div class="progress-wrap" style="height:6px; margin: 0;">
             <div class="progress-bar" style="width:${Math.min(pct,100)}%"></div>
           </div>
         </div>
@@ -689,15 +746,32 @@ function renderAccountCards(accounts) {
 // =============================================
 async function refreshAddForm() {
   const sel = document.getElementById('f_account');
-  sel.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
+  sel.innerHTML = '<option value="">กำลังโหลดข้อมูลบัญชี...</option>';
+  sel.disabled = true;
 
   const today = new Date().toISOString().split('T')[0];
-  document.getElementById('f_date').value = today;
+  if (!document.getElementById('f_date').value) {
+      document.getElementById('f_date').value = today;
+  }
 
   try {
-    const data = await callGAS({ action: 'getAccounts' });
-    accountsData = data.accounts;
-    data.accounts.forEach(a => {
+    // ใช้ข้อมูลจากที่โหลดมาแล้ว (ถ้ามี) เพื่อความรวดเร็วไม่ต้องรอเชื่อมต่อใหม่
+    let accounts = accountsData; 
+    if (!accounts || accounts.length === 0) {
+        const data = await callGAS({ action: 'getAccounts' });
+        accounts = data.accounts || [];
+        accountsData = accounts;
+    }
+    
+    sel.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
+    sel.disabled = false;
+
+    if (accounts.length === 0) {
+        throw new Error("ไม่มีข้อมูลบัญชีในระบบ");
+    }
+
+    accounts.forEach(a => {
+      if (!a.id) return; // ข้ามบรรทัดที่ว่าง
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = a.name + ' (คงเหลือ ' + fmt(a.balance) + ')';
@@ -706,10 +780,14 @@ async function refreshAddForm() {
       sel.appendChild(opt);
     });
   } catch(e) {
+    sel.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
+    sel.disabled = false;
+    
+    // ข้อมูลจำลองกรณีเชื่อมต่อ Google Sheets ไม่สำเร็จ
     [
-      {id:'HOME',  name:'สินเชื่อตัวบ้าน',       balance:2153000, rate:3.09},
-      {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม',   balance:120000,  rate:3.09},
-      {id:'MRTA',  name:'ประกัน MRTA',            balance:60232,   rate:3.09}
+      {id:'HOME',  name:'สินเชื่อตัวบ้าน (ข้อมูลจำลอง)',       balance:2153000, rate:3.09},
+      {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม (ข้อมูลจำลอง)',   balance:120000,  rate:3.09},
+      {id:'MRTA',  name:'ประกัน MRTA (ข้อมูลจำลอง)',            balance:60232,   rate:3.09}
     ].forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id; opt.textContent = a.name;
@@ -720,6 +798,7 @@ async function refreshAddForm() {
 
   ['hist_account', 'amo_account'].forEach(id => {
     const s = document.getElementById(id);
+    if (!s) return;
     s.innerHTML = '<option value="">ทุกบัญชี</option>';
     Array.from(sel.options).slice(1).forEach(o => {
       const no = document.createElement('option');
@@ -795,24 +874,24 @@ async function submitPayment() {
   const note      = document.getElementById('f_note').value;
 
   if (!accountId || !date || !total) {
-    toast('⚠️ กรุณากรอกข้อมูลให้ครบ', 'error');
+    toast('กรุณากรอกข้อมูลให้ครบ', 'error');
     return;
   }
 
-  if (!GAS_URL) { toast('⚠️ ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
+  if (!GAS_URL) { toast('ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
 
   const btn = event.target;
   const originalText = btn.innerHTML;
-  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></div> กำลังบันทึก...';
+  btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-top-color:#fff;"></div> กำลังบันทึก...';
   btn.disabled = true;
 
   try {
     const res = await callGAS({ action:'addPayment', accountId, date, total, interest, principal, note });
-    toast('✅ บันทึกสำเร็จ! เงินต้นลด ' + fmt(res.principal) + ' บ.', 'success');
+    toast('บันทึกสำเร็จ! เงินต้นลด ' + fmt(res.principal) + ' บ.', 'success');
     clearForm();
     refreshAddForm();
   } catch(e) {
-    toast('❌ ' + e.message, 'error');
+    toast(e.message, 'error');
   } finally {
     btn.innerHTML = originalText;
     btn.disabled = false;
@@ -853,12 +932,12 @@ async function loadHistory() {
     paymentsCache = rows;
 
     if (!rows.length) {
-      el.innerHTML = '<div class="empty-state">ยังไม่มีรายการชำระในระบบ</div>';
+      el.innerHTML = '<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;">📂</div>ยังไม่มีรายการชำระในระบบ</div>';
       return;
     }
 
     el.innerHTML = `
-      <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">พบ ${rows.length} รายการ</div>
+      <div style="font-size:14px; color:var(--muted); margin-bottom:16px; font-weight:500;">พบประวัติ ${rows.length} รายการ</div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -881,17 +960,17 @@ async function loadHistory() {
                 <td style="text-align:center;">${r.period || '-'}</td>
                 <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
                 <td class="num">${fmt(r.total)}</td>
-                <td class="num" style="color:var(--navy2); font-weight:500;">${fmt(r.principal)}</td>
+                <td class="num" style="color:var(--blue); font-weight:600;">${fmt(r.principal)}</td>
                 <td class="num" style="color:var(--gold);">${fmt(r.interest)}</td>
-                <td class="num" style="font-weight:500;">${fmt(r.balance)}</td>
-                <td style="color:var(--muted); font-size:12px; max-width: 150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.note || '-'}</td>
+                <td class="num" style="font-weight:600;">${fmt(r.balance)}</td>
+                <td style="color:var(--muted); font-size:13px; max-width: 150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.note || '-'}</td>
                 <td><button class="btn btn-danger" onclick="deleteRow('${r.id}')">ลบ</button></td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>`;
   } catch(e) {
-    el.innerHTML = `<div class="info-box" style="border-color:var(--red);background:#FDECEA;color:var(--red);">❌ ${e.message}</div>`;
+    el.innerHTML = `<div class="info-box info-box-danger">❌ ${e.message}</div>`;
   }
 }
 
@@ -899,15 +978,15 @@ async function deleteRow(id) {
   if (!confirm('ยืนยันการลบรายการชำระนี้? (ยอดคงเหลือจะถูกดึงกลับอัตโนมัติ)')) return;
   try {
     await callGAS({ action: 'deletePayment', id });
-    toast('✅ ลบรายการสำเร็จ', 'success');
+    toast('ลบรายการสำเร็จ', 'success');
     loadHistory();
   } catch(e) {
-    toast('❌ ' + e.message, 'error');
+    toast(e.message, 'error');
   }
 }
 
 function exportCSV() {
-  if (!paymentsCache.length) { toast('⚠️ ไม่มีข้อมูลสำหรับส่งออก', 'error'); return; }
+  if (!paymentsCache.length) { toast('ไม่มีข้อมูลสำหรับส่งออก', 'error'); return; }
   const headers = ['วันที่ชำระ','งวดที่','บัญชี','ยอดชำระ','เงินต้น','ดอกเบี้ย','ยอดคงเหลือ','หมายเหตุ'];
   const rows = paymentsCache.map(r => [r.date, r.period, r.accountId, r.total, r.principal, r.interest, r.balance, r.note]);
   const csv  = [headers, ...rows].map(r => r.join(',')).join('\n');
@@ -937,13 +1016,17 @@ async function loadAmortize() {
     const rows = data.rows;
 
     if (!rows.length) {
-      el.innerHTML = '<div class="empty-state">ไม่พบข้อมูลบัญชีเงินกู้</div>';
+      el.innerHTML = '<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;">📊</div>ไม่พบข้อมูลบัญชีเงินกู้</div>';
       return;
     }
 
     el.innerHTML = `
-      <div style="font-size:13px; color:var(--muted); margin-bottom:12px; background:var(--bg); padding:10px 14px; border-radius:8px; border:1px solid var(--border);">
-        คำนวณล่วงหน้า <strong>${rows.length}</strong> งวด | ประมาณการดอกเบี้ยรวม: <strong style="color:var(--gold); font-size:15px;">${fmt(rows.reduce((s,r)=>s+r.interest,0))} บาท</strong>
+      <div style="font-size:14px; color:var(--text-dark); margin-bottom:16px; background:var(--sky2); padding:16px 20px; border-radius:var(--radius-md); border:1px solid var(--border); display:flex; align-items:center; gap:12px;">
+        <span style="font-size:24px;">📅</span>
+        <div>
+            คำนวณล่วงหน้า <strong>${rows.length}</strong> งวด <br>
+            ประมาณการดอกเบี้ยรวม: <strong style="color:var(--orange); font-size:16px;">${fmt(rows.reduce((s,r)=>s+r.interest,0))} บาท</strong>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -965,15 +1048,15 @@ async function loadAmortize() {
                 <td style="white-space:nowrap;">${fmtDate(r.dueDate)}</td>
                 <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
                 <td class="num">${fmt(r.payment)}</td>
-                <td class="num" style="color:var(--navy2); font-weight:500;">${fmt(r.principal)}</td>
+                <td class="num" style="color:var(--blue); font-weight:600;">${fmt(r.principal)}</td>
                 <td class="num" style="color:var(--gold);">${fmt(r.interest)}</td>
-                <td class="num" style="font-weight:500;">${fmt(r.balance)}</td>
+                <td class="num" style="font-weight:600;">${fmt(r.balance)}</td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>`;
   } catch(e) {
-    el.innerHTML = `<div class="info-box" style="border-color:var(--red);background:#FDECEA;color:var(--red);">❌ ${e.message}</div>`;
+    el.innerHTML = `<div class="info-box info-box-danger">❌ ${e.message}</div>`;
   }
 }
 
@@ -990,12 +1073,12 @@ function loadSettingsPage() {
     {id:'MRTA',  name:'ประกัน MRTA',             rate:3.09, cls:'mrta'}
   ];
   rc.innerHTML = accs.map(a => `
-    <div class="acc-card ${a.cls}" style="padding:16px;">
+    <div class="acc-card ${a.cls}">
       <div class="acc-name">${a.name}</div>
-      <div style="display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;">
-        <input type="number" id="rate_${a.id}" value="${a.rate}" step="0.01" min="0" max="30" style="width:120px; flex:none;"/>
-        <span style="font-size:13px; color:var(--muted);">% ต่อปี</span>
-        <button class="btn btn-sm btn-outline" style="margin-left:auto;" onclick="saveRate('${a.id}')">บันทึกอัตรา</button>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap;">
+        <input type="number" id="rate_${a.id}" value="${a.rate}" step="0.01" min="0" max="30" style="width:130px; flex:none;"/>
+        <span style="font-size:14px; color:var(--muted); font-weight:500;">% ต่อปี</span>
+        <button class="btn btn-sm btn-outline" style="margin-left:auto; background:var(--card);" onclick="saveRate('${a.id}')">บันทึก</button>
       </div>
     </div>`).join('');
 }
@@ -1003,37 +1086,40 @@ function loadSettingsPage() {
 function saveSettings() {
   GAS_URL = document.getElementById('set_gasUrl').value.trim();
   localStorage.setItem('gasUrl', GAS_URL);
-  toast('✅ บันทึก URL สำเร็จ', 'success');
+  toast('บันทึก URL สำเร็จ', 'success');
   document.getElementById('settingsResult').innerHTML =
-    '<div class="info-box">บันทึก URL เรียบร้อย — กรุณากด "ทดสอบเชื่อมต่อ" เพื่อยืนยันการเชื่อมต่อ</div>';
+    '<div class="info-box"><span style="font-size:20px;">✅</span><div>บันทึก URL เรียบร้อย — <strong>กรุณากด "ทดสอบเชื่อมต่อ"</strong> เพื่อยืนยันการเชื่อมต่อ</div></div>';
 }
 
 async function testConnection() {
   GAS_URL = document.getElementById('set_gasUrl').value.trim();
-  if (!GAS_URL) { toast('⚠️ กรุณากรอก URL ก่อน', 'error'); return; }
+  if (!GAS_URL) { toast('กรุณากรอก URL ก่อน', 'error'); return; }
   
   const btn = event.target; 
   const originalText = btn.innerHTML;
-  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></div> กำลังทดสอบ...'; 
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-top-color:var(--navy);"></div> ทดสอบ...'; 
   btn.disabled = true;
   
   try {
     const data = await callGAS({ action: 'getSettings' });
     document.getElementById('settingsResult').innerHTML =
-      `<div class="info-box" style="border-left-color:var(--green); background:#EAF8F1;">
-        ✅ <strong>เชื่อมต่อกับ Google Sheets สำเร็จ!</strong><br>
-        <ul style="margin-top:8px; margin-left:20px; font-size:13px; opacity:0.9;">
-          <li>วันเริ่มสัญญา: ${data.contractStart}</li>
-          <li>กำหนดชำระงวดแรก: ${data.firstPayment}</li>
-          <li>อัตราดอกเบี้ยเริ่มต้น: ${data.defaultRate}%</li>
-        </ul>
+      `<div class="info-box" style="border-color:var(--green); background:var(--green2); color:#065F46;">
+        <span style="font-size:20px;">✅</span>
+        <div>
+            <strong>เชื่อมต่อกับ Google Sheets สำเร็จ!</strong><br>
+            <ul style="margin-top:12px; margin-left:20px; font-size:14px; opacity:0.9;">
+            <li>วันเริ่มสัญญา: ${data.contractStart}</li>
+            <li>กำหนดชำระงวดแรก: ${data.firstPayment}</li>
+            <li>อัตราดอกเบี้ยเริ่มต้น: ${data.defaultRate}%</li>
+            </ul>
+        </div>
       </div>`;
-    toast('✅ เชื่อมต่อสำเร็จ', 'success');
+    toast('เชื่อมต่อสำเร็จ', 'success');
     document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
   } catch(e) {
     document.getElementById('settingsResult').innerHTML =
-      `<div class="info-box" style="border-color:var(--red);background:#FDECEA;color:var(--red);">❌ ${e.message}</div>`;
-    toast('❌ ไม่สามารถเชื่อมต่อได้', 'error');
+      `<div class="info-box info-box-danger">❌ ${e.message}</div>`;
+    toast('ไม่สามารถเชื่อมต่อได้', 'error');
   } finally {
     btn.innerHTML = originalText; 
     btn.disabled = false;
@@ -1043,18 +1129,18 @@ async function testConnection() {
 async function saveRate(accountId) {
   const rate = document.getElementById('rate_' + accountId).value;
   if (!rate) return;
-  if (!GAS_URL) { toast('⚠️ ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
+  if (!GAS_URL) { toast('ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
   
   const btn = event.target;
   const oldText = btn.textContent;
-  btn.textContent = 'บันทึก...';
+  btn.textContent = 'รอสักครู่...';
   btn.disabled = true;
   
   try {
     await callGAS({ action: 'updateRate', accountId, rate });
-    toast('✅ อัปเดตดอกเบี้ยของบัญชีนี้สำเร็จ', 'success');
+    toast('อัปเดตดอกเบี้ยสำเร็จ', 'success');
   } catch(e) {
-    toast('❌ ' + e.message, 'error');
+    toast(e.message, 'error');
   } finally {
     btn.textContent = oldText;
     btn.disabled = false;
