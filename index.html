@@ -4,12 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>TTB Mortgage Tracker</title>
-
-     <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
+     
+  <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
     <link rel="apple-touch-icon" href="home-loan.jpg">
     <link rel="icon" type="image/jpg" href="home-loan.jpg">
     <meta name="apple-mobile-web-app-title" content="Homeloan">
-   
+     
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -552,6 +552,34 @@ const fmtDate = d => {
   return dt.toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'numeric'});
 };
 
+// ฟังก์ชันคำนวณจำนวนงวดที่เหลือ (NPER Formula)
+const getRemainingPeriods = (balance, annualRate, monthlyPayment) => {
+  if (balance <= 0) return 0;
+  if (!monthlyPayment || monthlyPayment <= 0) return Infinity;
+  
+  const r = annualRate / 100 / 12;
+  if (r === 0) return Math.ceil(balance / monthlyPayment);
+  
+  const interestPart = r * balance;
+  if (interestPart >= monthlyPayment) return Infinity; // จ่ายไม่พอตัดดอกเบี้ย
+  
+  const n = -Math.log(1 - (interestPart / monthlyPayment)) / Math.log(1 + r);
+  return Math.ceil(n);
+};
+
+// ฟังก์ชันแปลงจำนวนงวดเป็น ปี/เดือน ให้อ่านง่าย
+const formatPeriods = (months) => {
+  if (months === Infinity) return "จ่ายไม่พอดอกเบี้ย";
+  if (months === 0) return "หมดแล้ว 🎉";
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  let text = `${months} งวด`;
+  if (y > 0) {
+    text += ` <span style="font-size:12px; color:var(--muted); font-weight:400; margin-left:4px;">(~${y} ปี ${m > 0 ? m + ' เดือน' : ''})</span>`;
+  }
+  return text;
+};
+
 function toast(msg, type='') {
   const w = document.getElementById('toastWrap');
   const t = document.createElement('div');
@@ -719,17 +747,29 @@ function renderAccountCards(accounts) {
   return `<div class="account-cards">` + accounts.map(a => {
     const info = ACCOUNTS_INFO[a.id] || {};
     const pct  = a.originalBalance > 0 ? ((a.originalBalance - a.balance) / a.originalBalance * 100) : 0;
+    
+    // คำนวณงวดคงเหลือจากยอดปัจจุบัน
+    const minPay = info.minPayment || 0;
+    const remainPeriods = getRemainingPeriods(a.balance, a.rate, minPay);
+    const periodText = formatPeriods(remainPeriods);
+
     return `
       <div class="acc-card ${info.cls || ''}">
         <div class="acc-name">${a.name}</div>
         <div class="acc-balance">${fmt(a.balance)}</div>
         <div class="acc-orig">ยอดเริ่มต้น: ${fmt(a.originalBalance)} บาท</div>
         <div class="acc-rate">อัตราดอกเบี้ย <strong>${a.rate}%</strong> ต่อปี</div>
-        <div style="margin-top:20px; display:flex; align-items:center; gap:10px;">
+        <div style="margin-top:20px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <span style="font-size:13px; color:var(--muted);">ชำระขั้นต่ำ</span>
-          <span style="font-size:15px; font-weight:600; font-family:'IBM Plex Mono',monospace; color:var(--text-dark); background:var(--bg); border: 1px solid var(--border); padding:6px 14px; border-radius:100px;">${fmt(info.minPayment || 0)} <span style="font-size:12px; color:var(--muted); font-weight:400; font-family:'IBM Plex Sans Thai', sans-serif;">บาท/งวด</span></span>
+          <span style="font-size:15px; font-weight:600; font-family:'IBM Plex Mono',monospace; color:var(--text-dark); background:var(--bg); border: 1px solid var(--border); padding:6px 14px; border-radius:100px;">${fmt(minPay)} <span style="font-size:12px; color:var(--muted); font-weight:400; font-family:'IBM Plex Sans Thai', sans-serif;">บาท/งวด</span></span>
         </div>
-        <div class="acc-mini-prog">
+        
+        <div style="margin-top:12px; background: var(--sky2); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px dashed var(--sky); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size:13px; color:var(--blue-hover); font-weight:500;"><span style="font-size:16px; margin-right:6px;">⏱️</span>หมดในอีก (ถ้าจ่ายขั้นต่ำ)</span>
+          <strong style="font-size:14px; color:var(--blue); text-align:right;">${periodText}</strong>
+        </div>
+
+        <div class="acc-mini-prog" style="margin-top:16px;">
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:8px;">
             <span>ลดไปแล้ว ${pct.toFixed(1)}%</span>
           </div>
