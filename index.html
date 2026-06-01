@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>TTB Mortgage Tracker</title>
-     
+<title>My Mortgage Tracker</title>
+
   <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
     <link rel="apple-touch-icon" href="home-loan.jpg">
     <link rel="icon" type="image/jpg" href="home-loan.jpg">
     <meta name="apple-mobile-web-app-title" content="Homeloan">
      
+<!-- นำเข้า Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -150,6 +152,7 @@
 
   /* === SUMMARY GRID === */
   .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .dashboard-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
   .metric {
     background: var(--bg);
     border-radius: var(--radius-md);
@@ -316,6 +319,15 @@
 
   .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 15px; background: var(--bg); border-radius: var(--radius-md); border: 1px dashed var(--border);}
 
+  /* === YEARLY REPORT TABLE === */
+  .yearly-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .yearly-table th { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: right; background: var(--bg); color: var(--muted); font-weight: 500;}
+  .yearly-table th:first-child { text-align: left; }
+  .yearly-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); text-align: right; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .yearly-table td:first-child { text-align: left; font-family: 'IBM Plex Sans Thai', sans-serif; font-weight: 600; color: var(--text-dark); }
+  .yearly-table tr.current-year { background: var(--sky2); }
+  .yearly-table tr:last-child td { border-bottom: none; }
+
   /* =========================================
      📱 MOBILE RESPONSIVE (MAX-WIDTH: 768px)
      ========================================= */
@@ -333,6 +345,7 @@
     .card { padding: 20px; margin-bottom: 16px; border-radius: var(--radius-md);}
     
     .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .dashboard-grid-2 { grid-template-columns: 1fr; gap: 16px; }
     .metric { padding: 16px; }
     .metric-value { font-size: 22px; }
     
@@ -541,6 +554,8 @@ const ACCOUNTS_INFO = {
 
 let accountsData = [];
 let paymentsCache = [];
+let doughnutChartInstance = null;
+let lineChartInstance = null;
 
 // =============================================
 //  UTILS
@@ -665,9 +680,16 @@ async function loadDashboard() {
   }
 
   try {
-    const data = await callGAS({ action: 'getSummary' });
-    accountsData = data.accounts;
-    const s = data.summary;
+    // โหลดข้อมูลภาพรวม และ ประวัติไปพร้อมๆ กันเพื่อนำมาวาดกราฟ
+    const [summaryData, paymentsData] = await Promise.all([
+        callGAS({ action: 'getSummary' }),
+        callGAS({ action: 'getPayments' })
+    ]);
+
+    accountsData = summaryData.accounts;
+    const s = summaryData.summary;
+    const payments = paymentsData.payments || [];
+    paymentsCache = payments;
 
     el.innerHTML = `
       <div class="summary-grid">
@@ -702,6 +724,7 @@ async function loadDashboard() {
           <div class="metric-sub">บาท (3 บัญชีรวมกัน)</div>
         </div>
       </div>
+
       <div class="card">
         <div class="card-title">ความคืบหน้ารวม</div>
         <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text); margin-bottom:12px; font-weight: 500;">
@@ -715,12 +738,40 @@ async function loadDashboard() {
           ลดเงินต้นไปแล้ว: <strong style="color:var(--text-dark); font-size:14px;">${fmt(s.totalPrincipal)} บาท</strong>
         </div>
       </div>
+
+      <!-- ส่วนของ Data Visualization และ สรุปรายปี -->
+      <div class="dashboard-grid-2">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">สัดส่วนที่จ่ายไปแล้ว</div>
+          <div style="position: relative; height: 240px; width: 100%;">
+            <canvas id="doughnutChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">📝 สรุปดอกเบี้ยจ่ายรายปี (ลดหย่อนภาษี)</div>
+          <div id="yearlyReportArea"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📉 แนวโน้มยอดหนี้คงเหลือ</div>
+        <div style="position: relative; height: 300px; width: 100%;">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">รายละเอียดแต่ละบัญชี</div>
-        ${renderAccountCards(data.accounts)}
+        ${renderAccountCards(summaryData.accounts)}
       </div>`;
 
     document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
+
+    // เรนเดอร์กราฟและรายงานสรุปหลังจากสร้าง DOM เสร็จ
+    renderCharts(s, payments);
+    renderYearlyReport(payments);
+
   } catch(e) {
     el.innerHTML = `
       <div class="info-box info-box-danger">
@@ -741,6 +792,149 @@ async function loadDashboard() {
       </div>`;
     document.getElementById('connectionStatus').textContent = 'ไม่ได้เชื่อมต่อ';
   }
+}
+
+// =============================================
+//  CHARTS & REPORT LOGIC
+// =============================================
+function renderCharts(summary, payments) {
+    // 1. Doughnut Chart (สัดส่วนเงินต้น vs ดอกเบี้ย)
+    const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+    if (doughnutChartInstance) doughnutChartInstance.destroy();
+    
+    const hasData = summary.totalPrincipal > 0 || summary.totalInterest > 0;
+    
+    doughnutChartInstance = new Chart(ctxDoughnut, {
+        type: 'doughnut',
+        data: {
+            labels: hasData ? ['ตัดเงินต้น', 'เสียดอกเบี้ย'] : ['ยังไม่มีการชำระ'],
+            datasets: [{
+                data: hasData ? [summary.totalPrincipal, summary.totalInterest] : [1],
+                backgroundColor: hasData ? ['#10B981', '#F59E0B'] : ['#E2E8F0'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { family: "'IBM Plex Sans Thai', sans-serif" } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (!hasData) return ' ยังไม่มีข้อมูล';
+                            const val = context.raw || 0;
+                            const total = summary.totalPrincipal + summary.totalInterest;
+                            const percent = ((val / total) * 100).toFixed(1);
+                            return ` ${fmt(val)} บาท (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Line Chart (แนวโน้มยอดหนี้คงเหลือ)
+    const ctxLine = document.getElementById('lineChart').getContext('2d');
+    if (lineChartInstance) lineChartInstance.destroy();
+
+    // จัดเรียงวันที่จากอดีต -> ปัจจุบัน
+    const sorted = [...payments].sort((a,b) => new Date(a.date) - new Date(b.date));
+    let runningBalance = summary.totalOriginal;
+    const labels = ['เริ่มต้น'];
+    const balances = [runningBalance];
+
+    sorted.forEach(p => {
+        runningBalance -= p.principal; // หักลบเงินต้นที่จ่ายในแต่ละงวดออกจากยอดหนี้รวม
+        labels.push(fmtDate(p.date));
+        balances.push(Math.max(0, runningBalance));
+    });
+
+    lineChartInstance = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'ยอดหนี้คงเหลือรวม (บาท)',
+                data: balances,
+                borderColor: '#0284C7',
+                backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { ticks: { font: { family: "'IBM Plex Sans Thai', sans-serif" } }, grid: { display: false } },
+                y: { 
+                    beginAtZero: false, 
+                    ticks: { 
+                        font: { family: "'IBM Plex Sans Thai', sans-serif" },
+                        callback: function(value) { return value >= 10000 ? (value/10000).toLocaleString() + ' หมื่น' : value; } 
+                    } 
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleFont: { family: "'IBM Plex Sans Thai', sans-serif" },
+                    bodyFont: { family: "'IBM Plex Sans Thai', sans-serif" },
+                    callbacks: {
+                        label: function(context) { return `ยอดหนี้เหลือ: ${fmt(context.raw)} บาท`; }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderYearlyReport(payments) {
+    const el = document.getElementById('yearlyReportArea');
+    if (!payments || payments.length === 0) {
+        el.innerHTML = '<div class="empty-state" style="padding:40px 20px; border:none; background:transparent;">ยังไม่มีข้อมูลการชำระเงิน</div>';
+        return;
+    }
+
+    // จัดกลุ่มรวมยอดดอกเบี้ยตามปี ค.ศ.
+    const yearly = {};
+    payments.forEach(p => {
+        const y = new Date(p.date).getFullYear();
+        if(!yearly[y]) yearly[y] = { interest: 0, principal: 0 };
+        yearly[y].interest += p.interest;
+        yearly[y].principal += p.principal;
+    });
+
+    const years = Object.keys(yearly).sort((a,b) => b - a); // เรียงจากปีล่าสุดลงไป
+    const currentYear = new Date().getFullYear();
+
+    let html = '<div style="overflow-x:auto;">';
+    html += '<table class="yearly-table">';
+    html += '<thead><tr><th>ปี (ค.ศ.)</th><th>ดอกเบี้ยที่จ่าย (บาท)</th></tr></thead><tbody>';
+    
+    years.forEach(y => {
+        const isCurrent = y == currentYear;
+        const trClass = isCurrent ? 'class="current-year"' : '';
+        const tag = isCurrent ? ' <span style="font-size:11px; font-weight:500; color:var(--blue); background:#fff; padding:2px 6px; border-radius:10px; border:1px solid var(--sky);">ปีปัจจุบัน</span>' : '';
+        html += `<tr ${trClass}>
+            <td>${y}${tag}</td>
+            <td style="color:var(--gold);">${fmt(yearly[y].interest)}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    html += `<div style="margin-top:14px; font-size:12px; color:var(--muted); display:flex; gap:6px; align-items:flex-start;">
+        <span style="font-size:16px;">💡</span>
+        <span>ยอดดอกเบี้ยจ่ายสินเชื่อที่อยู่อาศัย สามารถนำไปใช้ <strong>ลดหย่อนภาษีได้ตามจริง สูงสุดไม่เกิน 100,000 บาท/ปี</strong> (ตามเงื่อนไขของกรมสรรพากร)</span>
+    </div>`;
+    
+    el.innerHTML = html;
 }
 
 function renderAccountCards(accounts) {
