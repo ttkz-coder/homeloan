@@ -1,795 +1,940 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Homeloan</title>
-    
-    <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TTB Mortgage Tracker</title>
+
+      <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
     <link rel="apple-touch-icon" href="home-loan.jpg">
     <link rel="icon" type="image/jpg" href="home-loan.jpg">
     <meta name="apple-mobile-web-app-title" content="Homeloan">
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; }
-        
-        /* Ambient Background Glow */
-        .ambient-bg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; pointer-events: none;
-        }
-        .ambient-bg::before, .ambient-bg::after {
-            content: ''; position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4;
-        }
-        .ambient-bg::before { top: -10%; left: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, #e0e7ff 0%, transparent 70%); }
-        .ambient-bg::after { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, #f0fdf4 0%, transparent 70%); }
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type="number"] { -moz-appearance: textfield; }
-        
-        @media screen and (max-width: 768px) { input, select, textarea { font-size: 16px !important; } }
-        
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  :root {
+    --navy: #0C2340;
+    --navy2: #1B4F72;
+    --blue: #2980B9;
+    --sky: #AED6F1;
+    --sky2: #D6EAF8;
+    --gold: #D4A017;
+    --gold2: #F5CBA7;
+    --green: #1E8449;
+    --red: #C0392B;
+    --bg: #F4F6F9;
+    --card: #FFFFFF;
+    --text: #1a2332;
+    --muted: #6b7a8d;
+    --border: #DDE3EB;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(12,35,64,0.08);
+  }
 
-        /* Glassmorphism Classes */
-        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05); }
-        .premium-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); position: relative; overflow: hidden; }
-        .premium-gradient::after { content: ''; position: absolute; top: -50%; right: -50%; width: 100%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%); transform: rotate(30deg); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
 
-        /* Toast Animation */
-        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes fadeOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
-        .toast-enter { animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .toast-exit { animation: fadeOutRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    </style>
+  /* === HEADER === */
+  .header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+    color: #fff;
+    padding: 18px 24px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-logo {
+    width: 44px; height: 44px;
+    background: var(--gold);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 600; color: var(--navy);
+    flex-shrink: 0;
+  }
+  .header-info h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.2px; }
+  .header-info p  { font-size: 12px; opacity: 0.7; margin-top: 1px; }
+  .header-status {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; opacity: 0.85;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #2ECC71; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* === TABS === */
+  .tabs {
+    display: flex; gap: 0;
+    background: var(--navy);
+    padding: 0 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .tab {
+    padding: 10px 18px;
+    font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: rgba(255,255,255,0.85); }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* === CONTENT === */
+  .content { padding: 20px 24px; max-width: 960px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* === CARDS === */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; color: var(--navy2);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+
+  /* === SUMMARY GRID === */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .metric {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .metric-label { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.3px; margin-bottom: 6px; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+  .metric-value.red   { color: var(--red); }
+  .metric-value.green { color: var(--green); }
+  .metric-value.gold  { color: var(--gold); }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* === PROGRESS BAR === */
+  .progress-wrap { background: var(--sky2); border-radius: 8px; height: 10px; overflow: hidden; margin: 8px 0; }
+  .progress-bar  { height: 100%; background: linear-gradient(90deg, var(--navy2), var(--blue)); border-radius: 8px; transition: width .8s ease; }
+
+  /* === ACCOUNT CARDS === */
+  .account-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .acc-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+  }
+  .acc-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .acc-card.home::before   { background: linear-gradient(90deg, var(--navy2), var(--blue)); }
+  .acc-card.extra::before  { background: linear-gradient(90deg, var(--gold), #E67E22); }
+  .acc-card.mrta::before   { background: linear-gradient(90deg, var(--green), #27AE60); }
+  .acc-name    { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+  .acc-balance { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; color: var(--navy2); }
+  .acc-orig    { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .acc-rate    { font-size: 12px; color: var(--blue); margin-top: 8px; font-weight: 500; }
+  .acc-mini-prog { margin-top: 10px; }
+
+  /* === FORM === */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--muted); }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    width: 100%;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--blue); background: #fff; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none;
+    transition: all .18s;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--navy2); color: #fff; }
+  .btn-primary:hover { background: var(--navy); }
+  .btn-gold { background: var(--gold); color: var(--navy); }
+  .btn-gold:hover { background: #B8860B; }
+  .btn-outline { background: transparent; color: var(--navy2); border: 1.5px solid var(--navy2); }
+  .btn-outline:hover { background: var(--sky2); }
+  .btn-danger  { background: transparent; color: var(--red); border: 1.5px solid var(--red); font-size: 12px; padding: 5px 12px; }
+  .btn-danger:hover  { background: #FDECEA; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* === TABLE === */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--sky2); color: var(--navy); font-weight: 600; padding: 10px 12px; text-align: left; white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFBFD; }
+  .num { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-home  { background: var(--sky2); color: var(--navy2); }
+  .badge-extra { background: var(--gold2); color: #7D5A00; }
+  .badge-mrta  { background: #D5F5E3; color: #1E8449; }
+
+  /* === FILTER BAR === */
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .filter-bar select, .filter-bar input { width: auto; min-width: 140px; }
+
+  /* === AMORTIZE FILTERS === */
+  .amo-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .amo-controls select, .amo-controls input { width: auto; min-width: 140px; }
+
+  /* === SETTINGS === */
+  .settings-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .settings-row label { min-width: 200px; font-size: 13px; color: var(--text); }
+  .settings-row input, .settings-row select { max-width: 180px; }
+
+  /* === TOAST === */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--navy);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    animation: slideIn .25s ease;
+    max-width: 320px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.success { background: var(--green); }
+  .toast.error   { background: var(--red); }
+  @keyframes slideIn { from{transform:translateX(60px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+  /* === LOADING === */
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+  .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--sky);
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin .7s linear infinite; display: inline-block; margin-bottom: 8px;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* === INFO === */
+  .info-box {
+    background: var(--sky2);
+    border-left: 3px solid var(--blue);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    color: var(--navy2);
+  }
+
+  /* === MODAL-LIKE SECTION === */
+  .section-title {
+    font-size: 15px; font-weight: 600; color: var(--navy);
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--sky);
+  }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+  .empty-state svg { margin-bottom: 10px; opacity: .35; }
+
+  @media (max-width: 600px) {
+    .content { padding: 12px 14px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .header { padding: 14px 16px; }
+    .tabs { padding: 0 8px; overflow-x: auto; }
+  }
+</style>
 </head>
-<body class="text-slate-800 antialiased min-h-screen p-4 md:p-8 selection:bg-indigo-100 selection:text-indigo-900" onload="loadData()">
+<body>
 
-    <!-- Decorative Background -->
-    <div class="ambient-bg"></div>
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">T</div>
+  <div class="header-info">
+    <h1>TTB Mortgage Tracker</h1>
+    <p>ระบบบันทึกการผ่อนบ้าน | เริ่มสัญญา 16 พ.ค. 2569</p>
+  </div>
+  <div class="header-status">
+    <div class="dot"></div>
+    <span id="connectionStatus">กำลังเชื่อมต่อ...</span>
+  </div>
+</div>
 
-    <div class="max-w-6xl mx-auto space-y-8">
-        
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row justify-between items-center gap-6 mt-2 mb-10">
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">ระบบจัดการสินเชื่อบ้าน</h1>
-                    <p class="text-slate-500 text-sm md:text-base font-medium">Home loan management system</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 w-full md:w-auto">
-                <button onclick="loadFromGoogleSheets()" class="flex-1 md:flex-none justify-center flex items-center gap-2 bg-white hover:bg-slate-50 text-indigo-600 px-4 py-2.5 rounded-xl font-medium shadow-sm border border-slate-200 transition-all active:scale-95">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    โหลดข้อมูล
-                </button>
-                <button onclick="resetAllData()" class="flex-1 md:flex-none justify-center flex items-center gap-2 bg-white hover:bg-rose-50 text-rose-500 px-4 py-2.5 rounded-xl font-medium shadow-sm border border-slate-200 transition-all active:scale-95">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    <span class="hidden sm:inline">ล้างข้อมูล</span>
-                </button>
-            </div>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showPage('dashboard')">ภาพรวม</div>
+  <div class="tab" onclick="showPage('add')">บันทึกชำระ</div>
+  <div class="tab" onclick="showPage('history')">ประวัติ</div>
+  <div class="tab" onclick="showPage('amortize')">ตารางผ่อน</div>
+  <div class="tab" onclick="showPage('settings')">ตั้งค่า</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- PAGE: DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div id="summaryArea">
+      <div class="loading"><div class="spinner"></div><br>กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+
+  <!-- PAGE: ADD PAYMENT -->
+  <div id="page-add" class="page">
+    <div class="card">
+      <div class="section-title">บันทึกการชำระเงิน</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>บัญชี *</label>
+          <select id="f_account">
+            <option value="">-- เลือกบัญชี --</option>
+          </select>
         </div>
-
-        <!-- Section 1: Initial Setup -->
-        <div class="glass-card p-6 md:p-8 rounded-3xl">
-            <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
-                <span class="bg-indigo-100 text-indigo-700 w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span>
-                ตั้งค่าสัญญาเริ่มต้น
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2">ยอดหนี้ทั้งหมด (บาท)</label>
-                    <div class="relative">
-                        <input type="text" id="initialAmount" oninput="formatInputNumber(this)" class="w-full pl-4 pr-10 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800 font-medium" placeholder="0.00">
-                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">฿</span>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2">ดอกเบี้ยต่อปี (%)</label>
-                    <div class="relative">
-                        <input type="number" id="interestRate" step="0.01" class="w-full pl-4 pr-10 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800 font-medium" placeholder="0.00">
-                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">%</span>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2">วันที่เริ่มกู้</label>
-                    <input type="date" id="startDate" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-800 font-medium">
-                </div>
-                <div class="flex items-end">
-                    <button onclick="initializeLoan()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-slate-300/50 transition-all active:scale-95 flex justify-center items-center gap-2">
-                        บันทึกการตั้งค่า
-                    </button>
-                </div>
-            </div>
+        <div class="form-group">
+          <label>วันที่ชำระ *</label>
+          <input type="date" id="f_date"/>
         </div>
-
-        <!-- Main Dashboard Layout (Hidden initially) -->
-        <div id="dashboardSection" class="hidden space-y-8">
-            
-            <!-- Summary Cards Layer -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Balance Card (Premium Theme) -->
-                <div class="premium-gradient p-7 rounded-3xl shadow-xl shadow-indigo-200/50 flex flex-col justify-between min-h-[140px]">
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-indigo-100 font-medium text-sm opacity-90">ยอดหนี้คงเหลือ</p>
-                            <svg class="w-6 h-6 text-indigo-200 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <h3 class="text-3xl md:text-4xl font-bold text-white tracking-tight" id="dashBalance">0.00</h3>
-                    </div>
-                </div>
-                <!-- Principal Card -->
-                <div class="glass-card p-7 rounded-3xl flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <p class="text-slate-500 font-medium text-sm">รวมเงินต้นที่ตัดไป</p>
-                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center"><svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                    </div>
-                    <h3 class="text-2xl md:text-3xl font-bold text-emerald-500 tracking-tight" id="dashPrincipal">0.00</h3>
-                </div>
-                <!-- Interest Card -->
-                <div class="glass-card p-7 rounded-3xl flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <p class="text-slate-500 font-medium text-sm">รวมดอกเบี้ยที่จ่ายไป</p>
-                        <div class="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center"><svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg></div>
-                    </div>
-                    <h3 class="text-2xl md:text-3xl font-bold text-rose-500 tracking-tight" id="dashInterest">0.00</h3>
-                </div>
-            </div>
-
-            <!-- Two Column Layout for Progress and Add Payment -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                
-                <!-- Left Col: Progress & Chart -->
-                <div class="lg:col-span-1 space-y-6">
-                    <div class="glass-card p-6 rounded-3xl">
-                        <h3 class="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">ภาพรวมสัดส่วน</h3>
-                        <div class="relative h-48 flex justify-center w-full">
-                            <canvas id="ratioChart"></canvas>
-                        </div>
-                        <div class="mt-6">
-                            <div class="flex justify-between items-end mb-2">
-                                <span class="text-sm font-semibold text-slate-600">ความคืบหน้า</span>
-                                <span class="text-lg font-bold text-indigo-600" id="progressText">0%</span>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
-                                <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-blue-500 h-full rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Forecast Box -->
-                    <div class="bg-indigo-900 rounded-3xl p-6 shadow-xl relative overflow-hidden text-white">
-                        <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-600 rounded-full blur-2xl opacity-50"></div>
-                        <div class="relative z-10">
-                            <div class="flex items-center gap-2 mb-3">
-                                <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                <h4 class="font-semibold text-sm text-indigo-100">การพยากรณ์อัจฉริยะ</h4>
-                            </div>
-                            <p class="text-sm text-indigo-50 leading-relaxed font-medium" id="forecastText">เพิ่มรายการชำระเงินเพื่อคำนวณ</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Col: Add Payment Form -->
-                <div class="lg:col-span-2 glass-card p-6 md:p-8 rounded-3xl relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 to-emerald-500"></div>
-                    <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span class="bg-emerald-100 text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span>
-                        บันทึกการชำระเงิน
-                    </h2>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <!-- ประเภท -->
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-600 mb-2">ประเภทรายการ</label>
-                            <select id="paymentType" onchange="calculateLiveSavings()" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none text-slate-800 cursor-pointer font-medium">
-                                <option value="ปกติ">จ่ายปกติ</option>
-                                <option value="โปะบ้าน">โปะบ้าน</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-600 mb-2">วันที่ชำระ</label>
-                            <input type="date" id="paymentDate" onchange="calculateLiveSavings()" class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none text-slate-800 cursor-pointer font-medium">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-600 mb-2">ดอกเบี้ยปัจจุบัน (%)</label>
-                            <div class="relative">
-                                <input type="number" id="currentRate" step="0.01" oninput="calculateLiveSavings()" class="w-full pl-4 pr-10 py-3 bg-indigo-50 border border-indigo-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none text-indigo-700 font-bold" title="สามารถแก้ได้หากมีการ Refinance">
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400 text-sm font-medium">%</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-600 mb-2">จำนวนเงิน (บาท)</label>
-                            <div class="relative">
-                                <input type="text" id="paymentAmount" oninput="formatInputNumber(this); calculateLiveSavings();" class="w-full pl-4 pr-10 py-3 bg-emerald-50 border border-emerald-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none font-bold text-emerald-700 text-lg" placeholder="0.00">
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 text-sm font-bold">฿</span>
-                            </div>
-                        </div>
-                        <div class="sm:col-span-2 pt-2">
-                            <button id="submitBtn" onclick="processPayment()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-200 transition-all active:scale-95 flex justify-center items-center gap-2 text-lg">
-                                บันทึกยอดชำระ
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Live Saving Suggestion Box -->
-                    <div id="savingSuggestion" class="hidden mt-6 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200/60 rounded-2xl p-5 flex items-start transition-all duration-300">
-                        <div class="bg-white p-2 rounded-xl shadow-sm mr-4 shrink-0 text-emerald-500">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-emerald-900 text-sm mb-1">ความคุ้มค่าของการโปะยอดนี้</h4>
-                            <p class="text-sm text-emerald-800 leading-relaxed">
-                                ประหยัดดอกเบี้ยในอนาคตได้ถึง <span id="suggSaveInterest" class="text-lg font-black text-emerald-600">0</span> บาท<br>
-                                และช่วยให้ผ่อนจบไวขึ้น <span id="suggSaveTime" class="font-bold bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">0</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ledger Table -->
-            <div class="glass-card rounded-3xl overflow-hidden flex flex-col h-full max-h-[600px]">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 border-b border-slate-200 bg-white/50 gap-2 shrink-0">
-                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                        ประวัติการชำระเงิน
-                    </h2>
-                    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg sm:hidden flex items-center shadow-sm">
-                        <svg class="w-4 h-4 mr-1 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 11h8M8 15h8M4 7h.01M4 11h.01M4 15h.01"></path></svg>
-                        เลื่อนซ้าย-ขวา
-                    </span>
-                </div>
-                
-                <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
-                    <table class="w-full text-left border-collapse min-w-[900px]">
-                        <thead class="sticky top-0 bg-slate-100/90 backdrop-blur-md z-10 shadow-sm">
-                            <tr class="text-slate-500 text-xs uppercase tracking-wider">
-                                <th class="py-4 px-5 font-bold">งวดที่</th>
-                                <th class="py-4 px-5 font-bold">วันที่</th>
-                                <th class="py-4 px-5 font-bold text-center">ดอกเบี้ย</th>
-                                <th class="py-4 px-5 font-bold text-right">ยอดชำระ</th>
-                                <th class="py-4 px-5 font-bold text-right">ตัดดอกเบี้ย</th>
-                                <th class="py-4 px-5 font-bold text-right">ตัดเงินต้น</th>
-                                <th class="py-4 px-5 font-bold text-right">ยอดคงเหลือ</th>
-                                <th class="py-4 px-5 font-bold text-center">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ledgerBody" class="text-sm divide-y divide-slate-100 bg-white/50">
-                            <!-- Rows will be added here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
+        <div class="form-group">
+          <label>ยอดชำระทั้งหมด (บาท) *</label>
+          <input type="number" id="f_total" placeholder="0.00" step="0.01" oninput="calcFields()"/>
         </div>
+        <div class="form-group">
+          <label>ดอกเบี้ย (บาท) — คำนวณอัตโนมัติ</label>
+          <input type="number" id="f_interest" placeholder="คำนวณอัตโนมัติ" step="0.01" oninput="calcPrincipal()"/>
+        </div>
+        <div class="form-group">
+          <label>เงินต้น (บาท)</label>
+          <input type="number" id="f_principal" placeholder="คำนวณอัตโนมัติ" step="0.01" readonly style="background:#f8f8f8"/>
+        </div>
+        <div class="form-group">
+          <label>ยอดคงเหลือหลังชำระ (ประมาณ)</label>
+          <input type="text" id="f_remaining" readonly style="background:#f8f8f8; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--navy2)"/>
+        </div>
+        <div class="form-group full">
+          <label>หมายเหตุ</label>
+          <textarea id="f_note" placeholder="ข้อมูลเพิ่มเติม..."></textarea>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn btn-primary" onclick="submitPayment()">💾 บันทึกการชำระ</button>
+        <button class="btn btn-outline" onclick="clearForm()">ล้างข้อมูล</button>
+      </div>
+      <div id="addResult" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: HISTORY -->
+  <div id="page-history" class="page">
+    <div class="card">
+      <div class="section-title">ประวัติการชำระเงิน</div>
+      <div class="filter-bar">
+        <select id="hist_account" onchange="loadHistory()">
+          <option value="">ทุกบัญชี</option>
+        </select>
+        <input type="month" id="hist_month" onchange="loadHistory()" placeholder="เดือน"/>
+        <button class="btn btn-outline btn-sm" onclick="loadHistory()">🔄 รีเฟรช</button>
+        <button class="btn btn-sm" style="background:var(--sky2); color:var(--navy2);" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+      <div id="historyArea">
+        <div class="loading"><div class="spinner"></div><br>กำลังโหลด...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: AMORTIZE -->
+  <div id="page-amortize" class="page">
+    <div class="card">
+      <div class="section-title">ตารางผ่อนชำระ (Amortization Schedule)</div>
+      <div class="amo-controls">
+        <select id="amo_account" onchange="loadAmortize()">
+          <option value="">ทุกบัญชี</option>
+        </select>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:12px;">จำนวนงวด:</label>
+          <input type="number" id="amo_months" value="12" min="1" max="360" style="width:80px;" onchange="loadAmortize()"/>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadAmortize()">คำนวณ</button>
+      </div>
+      <div id="amortizeArea">
+        <div class="loading"><div class="spinner"></div><br>กำลังคำนวณ...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="card">
+      <div class="section-title">ตั้งค่า GAS Endpoint</div>
+      <div class="info-box">
+        วาง URL ของ Google Apps Script Web App ที่ Deploy แล้ว<br>
+        <small>ตัวอย่าง: https://script.google.com/macros/s/AKfycb.../exec</small>
+      </div>
+      <div class="settings-row">
+        <label>GAS Web App URL</label>
+        <input type="url" id="set_gasUrl" placeholder="https://script.google.com/macros/s/.../exec" style="max-width:500px; width:100%;"/>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึก URL</button>
+      <button class="btn btn-outline" style="margin-left:8px;" onclick="testConnection()">🔗 ทดสอบการเชื่อมต่อ</button>
+      <div id="settingsResult" style="margin-top:14px;"></div>
     </div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/30 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-[2rem] shadow-2xl flex flex-col items-center max-w-xs mx-4 transform scale-95 transition-transform duration-300" id="loadingBox">
-            <div class="relative w-16 h-16 mb-5">
-                <svg class="animate-spin w-full h-full text-indigo-100" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle></svg>
-                <svg class="animate-spin w-full h-full text-indigo-600 absolute top-0 left-0" viewBox="0 0 24 24"><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            </div>
-            <h3 id="loadingText" class="text-lg font-bold text-slate-800 text-center">กำลังซิงค์ข้อมูล...</h3>
-            <p class="text-sm text-slate-500 mt-2 text-center font-medium">โปรดรอสักครู่</p>
-        </div>
+    <div class="card">
+      <div class="section-title">อัปเดตอัตราดอกเบี้ย</div>
+      <div id="rateCards" class="account-cards"></div>
     </div>
 
-    <!-- Delete Confirm Modal -->
-    <div id="deleteModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-all duration-300 border border-slate-100" id="deleteModalContent">
-            <div class="w-16 h-16 rounded-3xl bg-rose-50 flex items-center justify-center mb-6 text-rose-500 mx-auto shadow-inner">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </div>
-            <h3 class="text-xl font-bold text-slate-900 text-center mb-3">ลบรายการนี้?</h3>
-            <p class="text-sm text-slate-500 text-center mb-8 font-medium leading-relaxed">เมื่อลบแล้ว ระบบจะคำนวณยอดคงเหลือใหม่ทั้งหมด และซิงค์ไปยัง Google Sheets</p>
-            <div class="flex gap-4">
-                <button onclick="closeDeleteModal()" class="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors active:scale-95">ยกเลิก</button>
-                <button onclick="confirmDelete()" class="flex-1 py-3 px-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95">ลบทิ้ง</button>
-            </div>
-        </div>
+    <div class="card">
+      <div class="section-title">วิธีติดตั้ง</div>
+      <ol style="line-height:2; padding-left:20px; font-size:13px; color:var(--text);">
+        <li>เปิด <strong>Google Sheets</strong> สร้างสเปรดชีตใหม่</li>
+        <li>เปิด <strong>Extensions → Apps Script</strong></li>
+        <li>วางโค้ดจากไฟล์ <code>Code.gs</code> ที่ดาวน์โหลดไป</li>
+        <li>บันทึก แล้วรัน <code>initSheets()</code> ครั้งแรกเพื่อสร้างชีท</li>
+        <li>ไปที่ <strong>Deploy → New deployment → Web App</strong></li>
+        <li>ตั้ง <em>Execute as: Me</em>, <em>Who has access: Anyone</em></li>
+        <li>คัดลอก URL มาวางในช่อง GAS Web App URL ด้านบน</li>
+      </ol>
     </div>
-
-    <script>
-        // ========================================================
-        // 1. นำ URL Web App ของ GAS มาวางในเครื่องหมายคำพูดด้านล่างนี้
-        // ========================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfrjqXQRNUgmmZn1lqQS7SxeBoFEgc_P6qeFSZngQfUKxY1-7ztLtZ1o5jdxI7SKb9/exec"; 
-
-        // State ของแอปพลิเคชัน
-        let loanDetails = { amount: 0, rate: 0, startDate: '' };
-        let history = []; 
-        let currentBalance = 0;
-        let currentAccruedInterest = 0; 
-        let chartInstance = null;
-        let currentEditId = null;
-        let recordToDeleteId = null; 
-
-        // Toast Notification System
-        function showToast(title, message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            let icon = '';
-            let colors = '';
-            if(type === 'success') {
-                icon = `<svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                colors = 'border-l-4 border-emerald-500';
-            } else if(type === 'error') {
-                icon = `<svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                colors = 'border-l-4 border-rose-500';
-            } else {
-                icon = `<svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                colors = 'border-l-4 border-indigo-500';
-            }
-
-            toast.className = `bg-white p-4 rounded-2xl shadow-xl flex items-start gap-3 w-80 toast-enter ${colors} pointer-events-auto`;
-            toast.innerHTML = `
-                <div class="shrink-0 mt-0.5">${icon}</div>
-                <div>
-                    <h4 class="font-bold text-slate-800 text-sm">${title}</h4>
-                    <p class="text-slate-500 text-xs font-medium mt-0.5">${message}</p>
-                </div>
-            `;
-            
-            container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.classList.replace('toast-enter', 'toast-exit');
-                setTimeout(() => toast.remove(), 400);
-            }, 3000);
-        }
-
-        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
-        function loadData() {
-            const savedData = localStorage.getItem('homeLoanDataPro');
-            if (savedData) {
-                const parsed = JSON.parse(savedData);
-                loanDetails = parsed.loanDetails;
-                history = parsed.history;
-                currentBalance = parsed.currentBalance;
-
-                document.getElementById('initialAmount').value = formatNumber(loanDetails.amount);
-                document.getElementById('interestRate').value = loanDetails.rate;
-                document.getElementById('startDate').value = loanDetails.startDate;
-                
-                const currentRate = history.length > 0 ? history[history.length - 1].rate : loanDetails.rate;
-                document.getElementById('currentRate').value = currentRate;
-
-                showDashboard();
-                updateUI();
-            }
-        }
-
-        function saveData() {
-            const data = { loanDetails, history, currentBalance };
-            localStorage.setItem('homeLoanDataPro', JSON.stringify(data));
-        }
-
-        function resetAllData() {
-            if(confirm("คุณต้องการลบข้อมูลประวัติการผ่อนในหน้านี้ทั้งหมดใช่หรือไม่?\n(ข้อมูลใน Google Sheets จะไม่ถูกลบไปด้วย)")) {
-                localStorage.removeItem('homeLoanDataPro');
-                location.reload(); 
-            }
-        }
-
-        function initializeLoan() {
-            const amountStr = document.getElementById('initialAmount').value.replace(/,/g, '');
-            const amount = parseFloat(amountStr);
-            const rate = parseFloat(document.getElementById('interestRate').value);
-            const startDate = document.getElementById('startDate').value;
-
-            if (isNaN(amount) || isNaN(rate) || !startDate) {
-                showToast('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลเริ่มต้นให้ถูกต้อง', 'error');
-                return;
-            }
-
-            loanDetails = { amount, rate, startDate };
-            currentBalance = amount;
-            history = []; 
-            document.getElementById('currentRate').value = rate;
-
-            showDashboard();
-            updateUI();
-            saveData();
-            showToast('บันทึกการตั้งค่า', 'เริ่มบันทึกค่างวดด้านล่างได้เลย', 'success');
-        }
-
-        function showDashboard() {
-            document.getElementById('dashboardSection').classList.remove('hidden');
-        }
-
-        function getDaysBetween(dateString1, dateString2) {
-            const date1 = new Date(dateString1);
-            const date2 = new Date(dateString2);
-            return Math.floor((date2.getTime() - date1.getTime()) / (1000 * 3600 * 24));
-        }
-
-        function formatNumber(num) {
-            return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function formatInputNumber(input) {
-            let value = input.value.replace(/[^0-9.]/g, ''); 
-            let parts = value.split('.');
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); 
-            input.value = parts.length > 1 ? parts[0] + '.' + parts[1] : parts[0]; 
-        }
-
-        function calculateLiveSavings() {
-            const suggestionBox = document.getElementById('savingSuggestion');
-            const payAmountStr = document.getElementById('paymentAmount').value.replace(/,/g, '');
-            const payAmount = parseFloat(payAmountStr);
-
-            if (isNaN(payAmount) || payAmount <= 0 || currentBalance <= 0 || !loanDetails.startDate) {
-                suggestionBox.classList.add('hidden', 'opacity-0');
-                suggestionBox.classList.remove('opacity-100');
-                return;
-            }
-
-            const payDate = document.getElementById('paymentDate').value;
-            if (!payDate) return;
-            const lastDate = history.length > 0 ? history[history.length - 1].date : loanDetails.startDate;
-            const daysPassed = getDaysBetween(lastDate, payDate);
-            if (daysPassed < 0) {
-                suggestionBox.classList.add('hidden');
-                return;
-            }
-
-            const currentRate = parseFloat(document.getElementById('currentRate').value);
-            if (isNaN(currentRate) || currentRate <= 0) return;
-
-            let basePayment = 0;
-            for (let i = history.length - 1; i >= 0; i--) {
-                if (history[i].type === 'ปกติ') { basePayment = history[i].payment; break; }
-            }
-            if (basePayment <= 0) {
-                const r = (currentRate / 100) / 12;
-                basePayment = loanDetails.amount * r * Math.pow(1+r, 360) / (Math.pow(1+r, 360) - 1);
-            }
-
-            const ratePerDay = (currentRate / 100) / 365;
-            const monthlyRate = ratePerDay * 30.416;
-            const todayInt = currentAccruedInterest + (currentBalance * ratePerDay * daysPassed);
-            let todayPrin = payAmount >= todayInt ? payAmount - todayInt : 0;
-            
-            if (todayPrin <= 0) { suggestionBox.classList.add('hidden'); return; }
-            if (todayPrin > currentBalance) todayPrin = currentBalance;
-
-            function calcAmort(bal, pmt) {
-                let totalInt = 0, m = 0, tempBal = bal, accruedInt = 0;
-                while(tempBal > 0 && m < 1200) {
-                    let newInt = tempBal * monthlyRate;
-                    accruedInt += newInt;
-                    let prin = 0;
-                    if(pmt >= accruedInt) { prin = pmt - accruedInt; totalInt += accruedInt; accruedInt = 0; } 
-                    else { totalInt += pmt; accruedInt -= pmt; }
-                    if(prin <= 0 && accruedInt > 0) return { int: Infinity, m: Infinity };
-                    if(prin > tempBal) prin = tempBal;
-                    tempBal -= prin;
-                    m++;
-                }
-                return { int: totalInt, m: m };
-            }
-
-            const baseSim = calcAmort(currentBalance, basePayment);
-            const newSim = calcAmort(currentBalance - todayPrin, basePayment);
-
-            if (baseSim.int === Infinity || newSim.int === Infinity) { suggestionBox.classList.add('hidden'); return; }
-
-            const savedInterest = baseSim.int - newSim.int;
-            const savedMonths = baseSim.m - newSim.m;
-
-            if (savedInterest > 0) {
-                document.getElementById('suggSaveInterest').innerText = formatNumber(savedInterest);
-                let timeStr = "";
-                if (Math.floor(savedMonths / 12) > 0) timeStr += `${Math.floor(savedMonths / 12)} ปี `;
-                if (savedMonths % 12 > 0) timeStr += `${savedMonths % 12} เดือน`;
-                document.getElementById('suggSaveTime').innerText = timeStr || "0 เดือน";
-                
-                suggestionBox.classList.remove('hidden', 'opacity-0');
-                suggestionBox.classList.add('opacity-100');
-            } else {
-                suggestionBox.classList.add('hidden');
-            }
-        }
-
-        async function processPayment() {
-            const payType = document.getElementById('paymentType').value;
-            const payDate = document.getElementById('paymentDate').value;
-            const currentRate = parseFloat(document.getElementById('currentRate').value); 
-            const payAmountStr = document.getElementById('paymentAmount').value.replace(/,/g, '');
-            let payAmount = parseFloat(payAmountStr);
-
-            if (!payDate || isNaN(payAmount) || payAmount <= 0 || isNaN(currentRate)) {
-                showToast('ตรวจข้อมูลอีกครั้ง', 'กรุณากรอกวันที่, ดอกเบี้ย และจำนวนเงินให้ครบถ้วน', 'error');
-                return;
-            }
-
-            if (currentEditId !== null) {
-                let index = history.findIndex(r => r.id === currentEditId);
-                if (index !== -1) {
-                    history[index].type = payType;
-                    history[index].date = payDate;
-                    history[index].rate = currentRate;
-                    history[index].payment = payAmount;
-                }
-                currentEditId = null;
-                
-                const btn = document.getElementById('submitBtn');
-                btn.innerHTML = 'บันทึกยอดชำระ';
-                btn.classList.replace('bg-amber-500', 'bg-emerald-500');
-                btn.classList.replace('hover:bg-amber-600', 'hover:bg-emerald-600');
-                btn.classList.replace('shadow-amber-200', 'shadow-emerald-200');
-                
-                document.getElementById('paymentAmount').value = '';
-                document.getElementById('savingSuggestion').classList.add('hidden');
-                recalculateHistory();
-                return;
-            }
-
-            history.push({ id: history.length + 1, type: payType, date: payDate, rate: currentRate, payment: payAmount, interest: 0, principal: 0, balance: 0 });
-            document.getElementById('paymentAmount').value = '';
-            document.getElementById('savingSuggestion').classList.add('hidden');
-            recalculateHistory();
-        }
-
-        function recalculateHistory(skipSync = false) {
-            history.sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
-
-            let tempBalance = loanDetails.amount;
-            let lastDate = loanDetails.startDate;
-            let accruedInterestPool = 0; 
-
-            for (let i = 0; i < history.length; i++) {
-                let rec = history[i];
-                let daysPassed = getDaysBetween(lastDate, rec.date);
-                if (daysPassed < 0) daysPassed = 0; 
-
-                accruedInterestPool += (tempBalance * (rec.rate / 100) * daysPassed) / 365; 
-
-                let interestPaid = 0, principalPaid = 0;
-                if (rec.payment >= accruedInterestPool) {
-                    interestPaid = accruedInterestPool;
-                    principalPaid = rec.payment - accruedInterestPool;
-                    accruedInterestPool = 0; 
-                } else {
-                    interestPaid = rec.payment;
-                    accruedInterestPool -= rec.payment; 
-                }
-
-                if (principalPaid > tempBalance) principalPaid = tempBalance;
-                tempBalance -= principalPaid;
-
-                rec.interest = interestPaid;
-                rec.principal = principalPaid;
-                rec.balance = tempBalance;
-                rec.id = i + 1; 
-                lastDate = rec.date;
-            }
-
-            currentBalance = tempBalance;
-            currentAccruedInterest = accruedInterestPool; 
-
-            document.getElementById('initialAmount').value = formatNumber(loanDetails.amount);
-            document.getElementById('interestRate').value = loanDetails.rate;
-            document.getElementById('startDate').value = loanDetails.startDate;
-            document.getElementById('currentRate').value = history.length > 0 ? history[history.length - 1].rate : loanDetails.rate;
-
-            updateUI();
-            saveData();
-
-            if (!skipSync) syncToGoogleSheets();
-        }
-
-        function deleteRecord(id) {
-            recordToDeleteId = id;
-            const modal = document.getElementById('deleteModal');
-            const content = document.getElementById('deleteModalContent');
-            modal.classList.remove('hidden');
-            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
-        }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            const content = document.getElementById('deleteModalContent');
-            modal.classList.add('opacity-0');
-            content.classList.remove('scale-100'); content.classList.add('scale-95');
-            setTimeout(() => { modal.classList.add('hidden'); recordToDeleteId = null; }, 300);
-        }
-
-        function confirmDelete() {
-            if (recordToDeleteId !== null) {
-                history = history.filter(r => r.id !== recordToDeleteId);
-                closeDeleteModal();
-                recalculateHistory(); 
-            }
-        }
-
-        function editRecord(id) {
-            let rec = history.find(r => r.id === id);
-            if(!rec) return;
-
-            document.getElementById('paymentType').value = rec.type;
-            document.getElementById('paymentDate').value = rec.date;
-            document.getElementById('currentRate').value = rec.rate;
-            document.getElementById('paymentAmount').value = formatNumber(rec.payment);
-            currentEditId = id;
-            
-            const btn = document.getElementById('submitBtn');
-            btn.innerHTML = 'บันทึกการแก้ไข';
-            btn.classList.replace('bg-emerald-500', 'bg-amber-500');
-            btn.classList.replace('hover:bg-emerald-600', 'hover:bg-amber-600');
-            btn.classList.replace('shadow-emerald-200', 'shadow-amber-200');
-            document.getElementById('dashboardSection').scrollIntoView({behavior: "smooth"});
-        }
-
-        function updateUI() {
-            const tbody = document.getElementById('ledgerBody');
-            tbody.innerHTML = '';
-            let totalPrincipal = 0, totalInterest = 0;
-
-            tbody.insertAdjacentHTML('beforeend', `<tr class="bg-indigo-50/40">
-                <td class="py-4 px-5 text-slate-400 font-bold">0</td>
-                <td class="py-4 px-5 text-slate-500 font-medium">${loanDetails.startDate}</td>
-                <td class="py-4 px-5 text-center text-slate-400">-</td>
-                <td class="py-4 px-5 text-right text-slate-400">-</td>
-                <td class="py-4 px-5 text-right text-slate-400">-</td>
-                <td class="py-4 px-5 text-right text-slate-400">-</td>
-                <td class="py-4 px-5 text-right font-black text-indigo-600">${formatNumber(loanDetails.amount)}</td>
-                <td class="py-4 px-5 text-center text-slate-400">-</td>
-            </tr>`);
-
-            history.forEach(rec => {
-                totalPrincipal += rec.principal; totalInterest += rec.interest;
-                let badge = rec.type === 'โปะบ้าน' ? `<span class="ml-2 text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-md border border-amber-200 uppercase tracking-wider">โปะ</span>` : '';
-                tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-50">
-                    <td class="py-4 px-5 text-slate-500 font-bold">${rec.id}</td>
-                    <td class="py-4 px-5 text-slate-700 font-medium">${rec.date}</td>
-                    <td class="py-4 px-5 text-center text-slate-500 font-medium">${rec.rate}%</td>
-                    <td class="py-4 px-5 text-right text-emerald-600 font-bold">${formatNumber(rec.payment)} ${badge}</td>
-                    <td class="py-4 px-5 text-right text-rose-500 font-medium">${formatNumber(rec.interest)}</td>
-                    <td class="py-4 px-5 text-right text-indigo-500 font-medium">${formatNumber(rec.principal)}</td>
-                    <td class="py-4 px-5 text-right font-black text-slate-800">${formatNumber(rec.balance)}</td>
-                    <td class="py-4 px-5 text-center whitespace-nowrap">
-                        <button onclick="editRecord(${rec.id})" class="text-slate-400 hover:text-amber-500 bg-white hover:bg-amber-50 p-2 rounded-xl mr-1 transition-all shadow-sm border border-slate-100 hover:border-amber-200" title="แก้ไข">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                        </button>
-                        <button onclick="deleteRecord(${rec.id})" class="text-slate-400 hover:text-rose-500 bg-white hover:bg-rose-50 p-2 rounded-xl transition-all shadow-sm border border-slate-100 hover:border-rose-200" title="ลบ">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </td>
-                </tr>`);
-            });
-
-            document.getElementById('dashBalance').innerText = formatNumber(currentBalance);
-            document.getElementById('dashPrincipal').innerText = formatNumber(totalPrincipal);
-            document.getElementById('dashInterest').innerText = formatNumber(totalInterest);
-
-            const progressPercent = ((loanDetails.amount - currentBalance) / loanDetails.amount) * 100;
-            document.getElementById('progressBar').style.width = `${progressPercent}%`;
-            document.getElementById('progressText').innerText = `${progressPercent.toFixed(1)}%`;
-
-            updateForecast();
-            drawChart(totalPrincipal, totalInterest);
-        }
-
-        function updateForecast() {
-            const forecastEl = document.getElementById('forecastText');
-            if(history.length === 0 || currentBalance <= 0) {
-                forecastEl.innerHTML = currentBalance <= 0 ? "🎉 ยินดีด้วย! คุณผ่อนบ้านหมดแล้ว" : "เพิ่มรายการชำระเงินเพื่อคำนวณ";
-                return;
-            }
-
-            let basePayment = 0;
-            for (let i = history.length - 1; i >= 0; i--) {
-                if (history[i].type === 'ปกติ') { basePayment = history[i].payment; break; }
-            }
-            if (basePayment === 0) basePayment = history[history.length - 1].payment;
-
-            const currentRate = history[history.length - 1].rate;
-            const ratePerDay = (currentRate / 100) / 365;
-            let simBalance = currentBalance, accruedInt = currentAccruedInterest, months = 0;
-            
-            if(basePayment <= (simBalance * ratePerDay * 30.416)) {
-                forecastEl.innerHTML = `<span class="text-rose-300">ค่างวดปกติ (${formatNumber(basePayment)} บ.)<br>น้อยกว่าดอกเบี้ย (จะผ่อนไม่หมด)</span>`;
-                return;
-            }
-
-            while(simBalance > 0 && months < 1200) {
-                accruedInt += simBalance * ratePerDay * 30.416;
-                let principal = basePayment >= accruedInt ? basePayment - accruedInt : 0;
-                accruedInt = basePayment >= accruedInt ? 0 : accruedInt - basePayment;
-                if(principal > simBalance) principal = simBalance;
-                simBalance -= principal;
-                months++;
-            }
-
-            forecastEl.innerHTML = `จ่ายปกติ <b class="text-white">${formatNumber(basePayment)} บ./เดือน</b> (อิง ${currentRate}%)<br>หมดหนี้ใน <b class="text-white text-base bg-indigo-500/50 px-2 py-0.5 rounded-md">${Math.floor(months/12)>0?Math.floor(months/12)+' ปี ':''}${months%12} เดือน</b>`;
-        }
-
-        function drawChart(principal, interest) {
-            const ctx = document.getElementById('ratioChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy(); 
-
-            if (principal === 0 && interest === 0) {
-                chartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: ['ยังไม่มีข้อมูล'], datasets: [{ data: [1], backgroundColor: ['#f1f5f9'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
-                return;
-            }
-
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: ['เงินต้นที่ตัดไป', 'ดอกเบี้ยที่จ่ายไป'], datasets: [{ data: [principal, interest], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 8 }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, padding: 20, font: { family: 'Prompt', size: 12 } } }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.95)', padding: 12, cornerRadius: 12, callbacks: { label: function(context) { return ' ' + context.label + ': ' + formatNumber(context.raw) + ' บ.'; } } } } }
-            });
-        }
-
-        function showLoading(text) {
-            const overlay = document.getElementById('loadingOverlay');
-            document.getElementById('loadingText').innerText = text;
-            overlay.classList.remove('hidden');
-            setTimeout(() => { overlay.classList.remove('opacity-0'); document.getElementById('loadingBox').classList.remove('scale-95'); }, 10);
-        }
-
-        function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.classList.add('opacity-0'); document.getElementById('loadingBox').classList.add('scale-95');
-            setTimeout(() => overlay.classList.add('hidden'), 300);
-        }
-
-        async function syncToGoogleSheets() {
-            const gasUrl = SCRIPT_URL.trim();
-            if (!gasUrl) return;
-
-            showLoading('กำลังอัปเดตข้อมูล...'); 
-            try {
-                await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: JSON.stringify({ action: 'sync', loanDetails: loanDetails, history: history }) });
-                hideLoading(); 
-                showToast('อัปเดตสำเร็จ', 'บันทึกข้อมูลลง Google Sheets เรียบร้อยแล้ว', 'success');
-            } catch (error) {
-                hideLoading();
-                showToast('อัปเดตล้มเหลว', 'เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets', 'error');
-            }
-        }
-
-        async function loadFromGoogleSheets() {
-            const gasUrl = SCRIPT_URL.trim();
-            if (!gasUrl) { showToast('ไม่พบลิงก์เชื่อมต่อ', 'กรุณาใส่ SCRIPT_URL ในโค้ดก่อนทำการโหลด', 'error'); return; }
-            
-            showLoading('กำลังดาวน์โหลดข้อมูล...'); 
-            try {
-                const response = await fetch(gasUrl);
-                const result = await response.json();
-                hideLoading(); 
-                
-                if (result.status === 'success') {
-                    loanDetails = result.loanDetails; history = result.history;
-                    showDashboard(); recalculateHistory(true); 
-                    showToast('ดาวน์โหลดสำเร็จ', 'โหลดข้อมูลจาก Google Sheets เรียบร้อย', 'success');
-                } else if (result.status === 'empty') {
-                    showToast('ยังไม่มีข้อมูล', 'ยังไม่มีประวัติใน Google Sheets', 'info');
-                } else {
-                    showToast('ข้อผิดพลาดเซิร์ฟเวอร์', result.message, 'error');
-                }
-            } catch (error) {
-                hideLoading();
-                showToast('โหลดล้มเหลว', 'ตรวจสอบสิทธิ์ Web App (ต้องให้ทุกคนเข้าถึงได้)', 'error');
-            }
-        }
-    </script>
+  </div>
+
+</div><!-- end content -->
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// =============================================
+//  CONFIG
+// =============================================
+let GAS_URL = 'https://script.google.com/macros/s/AKfycbzhy3ChUfpXHQVQkiZFpJt36O3bFKtuA7CSjrWEwB6coRZRKmUl-1YhVwUfWC05xNY4/exec';
+
+const ACCOUNTS_INFO = {
+  HOME:  { name: 'สินเชื่อตัวบ้าน',               badge: 'badge-home',  cls: 'home',  orig: 2153000 },
+  EXTRA: { name: 'สินเชื่อเงินกู้เพิ่ม',           badge: 'badge-extra', cls: 'extra', orig: 120000  },
+  MRTA:  { name: 'ประกัน MRTA',                    badge: 'badge-mrta',  cls: 'mrta',  orig: 60232   }
+};
+
+let accountsData = [];
+let paymentsCache = [];
+
+// =============================================
+//  UTILS
+// =============================================
+const fmt = n => n == null ? '-' : Number(n).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = d => {
+  if (!d) return '-';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'numeric'});
+};
+
+function toast(msg, type='') {
+  const w = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  w.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'history')   loadHistory();
+  if (name === 'amortize')  loadAmortize();
+  if (name === 'settings')  loadSettingsPage();
+  if (name === 'add')       refreshAddForm();
+}
+
+async function callGAS(params) {
+  if (!GAS_URL) throw new Error('ยังไม่ได้ตั้งค่า GAS URL — ไปที่แท็บ "ตั้งค่า"');
+  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+  return data;
+}
+
+// =============================================
+//  DASHBOARD
+// =============================================
+async function loadDashboard() {
+  const el = document.getElementById('summaryArea');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><br>กำลังโหลด...</div>';
+
+  if (!GAS_URL) {
+    el.innerHTML = `
+      <div class="info-box">
+        ⚙️ ยังไม่ได้ตั้งค่า GAS URL — ไปที่แท็บ <strong>"ตั้งค่า"</strong> เพื่อเชื่อมต่อกับ Google Sheet
+      </div>
+      <div class="card">
+        <div class="card-title">ข้อมูลเริ่มต้น</div>
+        ${renderAccountCards([
+          {id:'HOME',  name:'สินเชื่อตัวบ้าน',                    originalBalance:2153000, balance:2153000, rate:3.09},
+          {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม',               originalBalance:120000,  balance:120000,  rate:3.09},
+          {id:'MRTA',  name:'ประกันชีวิตคุ้มครองสินเชื่อบ้าน (MRTA)', originalBalance:60232, balance:60232,  rate:3.09}
+        ])}
+      </div>`;
+    return;
+  }
+
+  try {
+    const data = await callGAS({ action: 'getSummary' });
+    accountsData = data.accounts;
+    const s = data.summary;
+
+    el.innerHTML = `
+      <div class="summary-grid">
+        <div class="metric">
+          <div class="metric-label">ยอดกู้รวมทั้งหมด</div>
+          <div class="metric-value">${fmt(s.totalOriginal)}</div>
+          <div class="metric-sub">บาท</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">ยอดคงเหลือรวม</div>
+          <div class="metric-value red">${fmt(s.totalRemaining)}</div>
+          <div class="metric-sub">บาท</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">ชำระแล้วรวม</div>
+          <div class="metric-value green">${fmt(s.totalPaid)}</div>
+          <div class="metric-sub">${s.paymentCount} งวด</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">ดอกเบี้ยที่จ่ายไปแล้ว</div>
+          <div class="metric-value gold">${fmt(s.totalInterest)}</div>
+          <div class="metric-sub">บาท</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">ความคืบหน้ารวม</div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px;">
+          <span>ชำระแล้ว ${s.progressPercent.toFixed(2)}%</span>
+          <span>เหลือ ${(100 - s.progressPercent).toFixed(2)}%</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar" style="width:${Math.min(s.progressPercent, 100)}%"></div>
+        </div>
+        <div style="font-size:12px; color:var(--muted); margin-top:6px;">
+          ลดเงินต้นไปแล้ว: <strong>${fmt(s.totalPrincipal)} บาท</strong>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">รายละเอียดแต่ละบัญชี</div>
+        ${renderAccountCards(data.accounts)}
+      </div>`;
+
+    document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
+  } catch(e) {
+    el.innerHTML = `<div class="info-box" style="border-color:var(--red); background:#FDECEA; color:var(--red);">
+      ❌ ${e.message}</div>`;
+    document.getElementById('connectionStatus').textContent = 'ไม่ได้เชื่อมต่อ';
+  }
+}
+
+function renderAccountCards(accounts) {
+  return `<div class="account-cards">` + accounts.map(a => {
+    const info = ACCOUNTS_INFO[a.id] || {};
+    const pct  = a.originalBalance > 0 ? ((a.originalBalance - a.balance) / a.originalBalance * 100) : 0;
+    return `
+      <div class="acc-card ${info.cls || ''}">
+        <div class="acc-name">${a.name}</div>
+        <div class="acc-balance">${fmt(a.balance)}</div>
+        <div class="acc-orig">ยอดเริ่มต้น: ${fmt(a.originalBalance)} บาท</div>
+        <div class="acc-rate">อัตราดอกเบี้ย ${a.rate}% ต่อปี</div>
+        <div class="acc-mini-prog">
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:4px;">
+            <span>ลดไปแล้ว ${pct.toFixed(1)}%</span>
+          </div>
+          <div class="progress-wrap" style="height:6px;">
+            <div class="progress-bar" style="width:${Math.min(pct,100)}%"></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('') + `</div>`;
+}
+
+// =============================================
+//  ADD PAYMENT FORM
+// =============================================
+async function refreshAddForm() {
+  const sel = document.getElementById('f_account');
+  sel.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
+
+  // Set today date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f_date').value = today;
+
+  try {
+    const data = await callGAS({ action: 'getAccounts' });
+    accountsData = data.accounts;
+    data.accounts.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.name + ' (คงเหลือ ' + fmt(a.balance) + ')';
+      opt.dataset.balance = a.balance;
+      opt.dataset.rate = a.rate;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    // use static fallback
+    [
+      {id:'HOME',  name:'สินเชื่อตัวบ้าน',       balance:2153000, rate:3.09},
+      {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม',   balance:120000,  rate:3.09},
+      {id:'MRTA',  name:'ประกัน MRTA',            balance:60232,   rate:3.09}
+    ].forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id; opt.textContent = a.name;
+      opt.dataset.balance = a.balance; opt.dataset.rate = a.rate;
+      sel.appendChild(opt);
+    });
+  }
+
+  // also fill filter dropdowns
+  ['hist_account', 'amo_account'].forEach(id => {
+    const s = document.getElementById(id);
+    s.innerHTML = '<option value="">ทุกบัญชี</option>';
+    Array.from(sel.options).slice(1).forEach(o => {
+      const no = document.createElement('option');
+      no.value = o.value; no.textContent = o.dataset ? o.textContent.split(' (')[0] : o.textContent;
+      s.appendChild(no);
+    });
+  });
+}
+
+function calcFields() {
+  const sel   = document.getElementById('f_account');
+  const opt   = sel.options[sel.selectedIndex];
+  if (!opt || !opt.dataset.balance) return;
+
+  const balance  = parseFloat(opt.dataset.balance) || 0;
+  const rate     = parseFloat(opt.dataset.rate) || 3.09;
+  const total    = parseFloat(document.getElementById('f_total').value) || 0;
+  const interest = parseFloat((balance * rate / 100 / 12).toFixed(2));
+  const principal= parseFloat((total - interest).toFixed(2));
+  const remaining= parseFloat((balance - Math.max(0, principal)).toFixed(2));
+
+  document.getElementById('f_interest').value  = interest > 0 ? interest : '';
+  document.getElementById('f_principal').value = principal > 0 ? principal.toFixed(2) : '';
+  document.getElementById('f_remaining').value = remaining > 0 ? fmt(remaining) : '';
+}
+
+function calcPrincipal() {
+  const total    = parseFloat(document.getElementById('f_total').value) || 0;
+  const interest = parseFloat(document.getElementById('f_interest').value) || 0;
+  const principal= total - interest;
+  document.getElementById('f_principal').value = principal.toFixed(2);
+
+  const sel   = document.getElementById('f_account');
+  const opt   = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.balance) {
+    const remaining = parseFloat(opt.dataset.balance) - Math.max(0, principal);
+    document.getElementById('f_remaining').value = fmt(remaining);
+  }
+}
+
+async function submitPayment() {
+  const accountId = document.getElementById('f_account').value;
+  const date      = document.getElementById('f_date').value;
+  const total     = document.getElementById('f_total').value;
+  const interest  = document.getElementById('f_interest').value;
+  const principal = document.getElementById('f_principal').value;
+  const note      = document.getElementById('f_note').value;
+
+  if (!accountId || !date || !total) {
+    toast('กรุณากรอกข้อมูลให้ครบ', 'error');
+    return;
+  }
+
+  if (!GAS_URL) { toast('ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
+
+  const btn = event.target;
+  btn.textContent = 'กำลังบันทึก...';
+  btn.disabled = true;
+
+  try {
+    const res = await callGAS({ action:'addPayment', accountId, date, total, interest, principal, note });
+    toast('✅ บันทึกสำเร็จ! เงินต้น ' + fmt(res.principal) + ' | ดอกเบี้ย ' + fmt(res.interest), 'success');
+    clearForm();
+    refreshAddForm();
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  } finally {
+    btn.textContent = '💾 บันทึกการชำระ';
+    btn.disabled = false;
+  }
+}
+
+function clearForm() {
+  ['f_account','f_date','f_total','f_interest','f_note'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'f_date' ? new Date().toISOString().split('T')[0] : '';
+  });
+  document.getElementById('f_principal').value = '';
+  document.getElementById('f_remaining').value = '';
+}
+
+// =============================================
+//  HISTORY
+// =============================================
+async function loadHistory() {
+  const el       = document.getElementById('historyArea');
+  const accountId= document.getElementById('hist_account').value;
+  const month    = document.getElementById('hist_month').value;
+
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><br>กำลังโหลด...</div>';
+
+  if (!GAS_URL) { el.innerHTML = '<div class="info-box">ยังไม่ได้ตั้งค่า GAS URL</div>'; return; }
+
+  try {
+    const params = { action: 'getPayments' };
+    if (accountId) params.accountId = accountId;
+    const data = await callGAS(params);
+    let rows = data.payments;
+
+    if (month) {
+      rows = rows.filter(r => r.date && r.date.startsWith(month));
+    }
+
+    paymentsCache = rows;
+
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty-state">ยังไม่มีรายการชำระ</div>';
+      return;
+    }
+
+    el.innerHTML = `
+      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">พบ ${rows.length} รายการ</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่ชำระ</th>
+              <th>งวดที่</th>
+              <th>บัญชี</th>
+              <th class="num">ยอดชำระ</th>
+              <th class="num">เงินต้น</th>
+              <th class="num">ดอกเบี้ย</th>
+              <th class="num">คงเหลือ</th>
+              <th>หมายเหตุ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${fmtDate(r.date)}</td>
+                <td style="text-align:center;">${r.period || '-'}</td>
+                <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
+                <td class="num">${fmt(r.total)}</td>
+                <td class="num" style="color:var(--navy2);">${fmt(r.principal)}</td>
+                <td class="num" style="color:var(--gold);">${fmt(r.interest)}</td>
+                <td class="num">${fmt(r.balance)}</td>
+                <td style="color:var(--muted); font-size:12px;">${r.note || ''}</td>
+                <td><button class="btn btn-danger" onclick="deleteRow('${r.id}')">ลบ</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="info-box" style="border-color:var(--red);background:#FDECEA;color:var(--red);">❌ ${e.message}</div>`;
+  }
+}
+
+async function deleteRow(id) {
+  if (!confirm('ต้องการลบรายการนี้?')) return;
+  try {
+    await callGAS({ action: 'deletePayment', id });
+    toast('ลบรายการสำเร็จ', 'success');
+    loadHistory();
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+function exportCSV() {
+  if (!paymentsCache.length) { toast('ไม่มีข้อมูล', 'error'); return; }
+  const headers = ['วันที่ชำระ','งวดที่','บัญชี','ยอดชำระ','เงินต้น','ดอกเบี้ย','ยอดคงเหลือ','หมายเหตุ'];
+  const rows = paymentsCache.map(r => [r.date, r.period, r.accountId, r.total, r.principal, r.interest, r.balance, r.note]);
+  const csv  = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'mortgage_history.csv';
+  a.click();
+}
+
+// =============================================
+//  AMORTIZE
+// =============================================
+async function loadAmortize() {
+  const el        = document.getElementById('amortizeArea');
+  const accountId = document.getElementById('amo_account').value;
+  const months    = document.getElementById('amo_months').value || 12;
+
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><br>กำลังคำนวณ...</div>';
+
+  if (!GAS_URL) { el.innerHTML = '<div class="info-box">ยังไม่ได้ตั้งค่า GAS URL</div>'; return; }
+
+  try {
+    const params = { action: 'getAmortize', months };
+    if (accountId) params.accountId = accountId;
+    const data = await callGAS(params);
+    const rows = data.rows;
+
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty-state">ไม่พบข้อมูล</div>';
+      return;
+    }
+
+    el.innerHTML = `
+      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">${rows.length} งวด | ดอกเบี้ยรวม: <strong style="color:var(--gold)">${fmt(rows.reduce((s,r)=>s+r.interest,0))} บาท</strong></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>งวดที่</th>
+              <th>วันที่ครบกำหนด</th>
+              <th>บัญชี</th>
+              <th class="num">ยอดชำระ/งวด</th>
+              <th class="num">เงินต้น</th>
+              <th class="num">ดอกเบี้ย</th>
+              <th class="num">ยอดคงเหลือ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td style="text-align:center;">${r.period}</td>
+                <td>${fmtDate(r.dueDate)}</td>
+                <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
+                <td class="num">${fmt(r.payment)}</td>
+                <td class="num" style="color:var(--navy2);">${fmt(r.principal)}</td>
+                <td class="num" style="color:var(--gold);">${fmt(r.interest)}</td>
+                <td class="num">${fmt(r.balance)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="info-box" style="border-color:var(--red);background:#FDECEA;color:var(--red);">❌ ${e.message}</div>`;
+  }
+}
+
+// =============================================
+//  SETTINGS
+// =============================================
+function loadSettingsPage() {
+  document.getElementById('set_gasUrl').value = GAS_URL || '';
+
+  // Rate cards
+  const rc = document.getElementById('rateCards');
+  const accs = [
+    {id:'HOME',  name:'สินเชื่อตัวบ้าน',        rate:3.09, cls:'home'},
+    {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม',    rate:3.09, cls:'extra'},
+    {id:'MRTA',  name:'ประกัน MRTA',             rate:3.09, cls:'mrta'}
+  ];
+  rc.innerHTML = accs.map(a => `
+    <div class="acc-card ${a.cls}" style="padding:14px 16px;">
+      <div class="acc-name">${a.name}</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+        <input type="number" id="rate_${a.id}" value="${a.rate}" step="0.01" min="0" max="30" style="width:100px;"/>
+        <span style="font-size:12px; color:var(--muted);">% ต่อปี</span>
+        <button class="btn btn-sm btn-outline" onclick="saveRate('${a.id}')">บันทึก</button>
+      </div>
+    </div>`).join('');
+}
+
+function saveSettings() {
+  GAS_URL = document.getElementById('set_gasUrl').value.trim();
+  localStorage.setItem('gasUrl', GAS_URL);
+  toast('✅ บันทึก URL สำเร็จ', 'success');
+  document.getElementById('settingsResult').innerHTML =
+    '<div class="info-box">บันทึก URL เรียบร้อย — ลองกด "ทดสอบการเชื่อมต่อ"</div>';
+}
+
+async function testConnection() {
+  GAS_URL = document.getElementById('set_gasUrl').value.trim();
+  if (!GAS_URL) { toast('กรุณากรอก URL ก่อน', 'error'); return; }
+  const btn = event.target; btn.textContent = '⏳ กำลังทดสอบ...'; btn.disabled = true;
+  try {
+    const data = await callGAS({ action: 'getSettings' });
+    document.getElementById('settingsResult').innerHTML =
+      `<div class="info-box">✅ เชื่อมต่อสำเร็จ!<br>วันเริ่มสัญญา: ${data.contractStart} | งวดแรก: ${data.firstPayment} | อัตราดอกเบี้ย: ${data.defaultRate}%</div>`;
+    toast('✅ เชื่อมต่อสำเร็จ', 'success');
+    document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
+  } catch(e) {
+    document.getElementById('settingsResult').innerHTML =
+      `<div class="info-box" style="border-color:var(--red);background:#FDECEA;color:var(--red);">❌ ${e.message}</div>`;
+    toast('❌ ไม่สามารถเชื่อมต่อได้', 'error');
+  } finally {
+    btn.textContent = '🔗 ทดสอบการเชื่อมต่อ'; btn.disabled = false;
+  }
+}
+
+async function saveRate(accountId) {
+  const rate = document.getElementById('rate_' + accountId).value;
+  if (!rate) return;
+  if (!GAS_URL) { toast('ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
+  try {
+    await callGAS({ action: 'updateRate', accountId, rate });
+    toast('✅ อัปเดตดอกเบี้ยสำเร็จ', 'success');
+  } catch(e) {
+    toast('❌ ' + e.message, 'error');
+  }
+}
+
+// =============================================
+//  INIT
+// =============================================
+window.onload = function() {
+  localStorage.setItem('gasUrl', GAS_URL);
+  document.getElementById('connectionStatus').textContent = 'พร้อมใช้งาน';
+  loadDashboard();
+  refreshAddForm();
+};
+</script>
 </body>
 </html>
