@@ -4,12 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>My Mortgage Tracker</title>
-
-    <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
+    
+  <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
     <link rel="apple-touch-icon" href="home-loan.jpg">
     <link rel="icon" type="image/jpg" href="home-loan.jpg">
     <meta name="apple-mobile-web-app-title" content="Homeloan">
-  
+    
 <!-- นำเข้า Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -417,7 +417,7 @@
         </div>
         <div class="form-group">
           <label>วันที่ชำระ *</label>
-          <input type="date" id="f_date"/>
+          <input type="date" id="f_date" onchange="calcFields()"/>
         </div>
         <div class="form-group full" id="minPayHint" style="display:none;">
           <div style="background:var(--sky2); border: 1px solid var(--sky); border-radius:var(--radius-sm); padding:16px; font-size:14px; color:var(--blue-hover); display:flex; align-items:center; gap:12px; flex-wrap: wrap;">
@@ -1046,8 +1046,22 @@ function onAccountChange() {
   const sel   = document.getElementById('f_account');
   const opt   = sel.options[sel.selectedIndex];
   const hint  = document.getElementById('minPayHint');
+  const dateInput = document.getElementById('f_date');
+  
   if (!opt || !opt.value) { hint.style.display = 'none'; return; }
-  const info  = ACCOUNTS_INFO[opt.value];
+  
+  const accountId = opt.value;
+  const info  = ACCOUNTS_INFO[accountId];
+  
+  // ตรวจสอบว่าเคยมีประวัติชำระหรือยัง ถ้ายังให้ตั้งค่าเริ่มต้นเป็น 25 มิ.ย. 2026 (งวดแรก)
+  const accPayments = paymentsCache.filter(p => p.accountId === accountId);
+  if (accPayments.length === 0) {
+      dateInput.value = '2026-06-25'; 
+  } else {
+      // ถ้าเคยจ่ายไปแล้ว ให้กลับมาใช้วันที่ปัจจุบันตามปกติ
+      dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
   if (info && info.minPayment) {
     document.getElementById('minPayValue').textContent = fmt(info.minPayment);
     hint.style.display = 'flex';
@@ -1076,13 +1090,43 @@ function calcFields() {
   const balance  = parseFloat(opt.dataset.balance) || 0;
   const rate     = parseFloat(opt.dataset.rate) || 3.09;
   const total    = parseFloat(document.getElementById('f_total').value) || 0;
-  const interest = parseFloat((balance * rate / 100 / 12).toFixed(2));
+  
+  // === การคำนวณดอกเบี้ยแบบรายวัน (Actual/365) ===
+  const accountId = opt.value;
+  // 1. หาวันที่ชำระล่าสุดของบัญชีนี้จากประวัติ
+  const accPayments = paymentsCache.filter(p => p.accountId === accountId).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const lastPaymentDate = accPayments.length > 0 ? new Date(accPayments[0].date) : new Date('2026-05-16'); // ใช้วันเริ่มสัญญาหากยังไม่เคยจ่าย
+  
+  // 2. วันที่ชำระปัจจุบันที่กรอกในฟอร์ม
+  const currentPayDate = new Date(document.getElementById('f_date').value);
+  
+  // 3. คำนวณระยะห่าง (จำนวนวัน)
+  let days = Math.round((currentPayDate - lastPaymentDate) / (1000 * 60 * 60 * 24));
+  if (days < 0) days = 0; // ป้องกันวันติดลบหากกรอกวันที่ย้อนหลัง
+  
+  // 4. คำนวณดอกเบี้ยแบบรายวัน: เงินต้น * (ดอกเบี้ย/100) * (จำนวนวัน/365)
+  const interest = parseFloat((balance * (rate / 100) * (days / 365)).toFixed(2));
   const principal= parseFloat((total - interest).toFixed(2));
   const remaining= parseFloat((balance - Math.max(0, principal)).toFixed(2));
 
   document.getElementById('f_interest').value  = interest > 0 ? interest : '';
   document.getElementById('f_principal').value = principal > 0 ? principal.toFixed(2) : '';
   document.getElementById('f_remaining').value = remaining > 0 ? fmt(remaining) : '';
+  
+  // อัปเดตคำใบ้แสดงจำนวนวันใต้ช่องดอกเบี้ย
+  let hint = document.getElementById('daysHint');
+  if (!hint) {
+     hint = document.createElement('div');
+     hint.id = 'daysHint';
+     hint.style.fontSize = '13px';
+     hint.style.color = 'var(--blue)';
+     hint.style.marginTop = '6px';
+     hint.style.padding = '8px 12px';
+     hint.style.background = 'var(--sky2)';
+     hint.style.borderRadius = 'var(--radius-sm)';
+     document.getElementById('f_interest').parentNode.appendChild(hint);
+  }
+  hint.innerHTML = `<span style="font-size:16px; margin-right:4px;">📅</span> คำนวณจาก <strong>${days} วัน</strong> (นับจากรอบชำระล่าสุดถึงวันที่เลือก)`;
 }
 
 function calcPrincipal() {
@@ -1121,6 +1165,18 @@ async function submitPayment() {
 
   try {
     const res = await callGAS({ action:'addPayment', accountId, date, total, interest, principal, note });
+    
+    // เพิ่มข้อมูลลง Cache แบบเรียลไทม์เพื่อใช้คำนวณวันในครั้งต่อไปได้ทันที
+    paymentsCache.push({
+        id: res.id || Date.now().toString(),
+        date: date,
+        accountId: accountId,
+        total: parseFloat(total),
+        principal: parseFloat(principal),
+        interest: parseFloat(interest),
+        balance: res.newBalance || 0
+    });
+
     toast('บันทึกสำเร็จ! เงินต้นลด ' + fmt(res.principal) + ' บ.', 'success');
     clearForm();
     refreshAddForm();
