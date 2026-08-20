@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
+    <link rel="apple-touch-icon" href="home-loan.jpg">
+    <link rel="icon" type="image/jpg" href="home-loan.jpg">
+    <meta name="apple-mobile-web-app-title" content="My Mortgage Tracker">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Luxe Mortgage Tracker</title>
@@ -476,6 +480,7 @@
       <a class="nav-item active" onclick="navTo('dashboard')"><i class="ph ph-squares-four"></i> ภาพรวม</a>
       <a class="nav-item" onclick="navTo('add')"><i class="ph ph-plus-circle"></i> บันทึกชำระ</a>
       <a class="nav-item" onclick="navTo('history')"><i class="ph ph-clock-counter-clockwise"></i> ประวัติ</a>
+      <a class="nav-item" onclick="navTo('reports')"><i class="ph ph-chart-pie-slice"></i> รายงาน</a>
       <a class="nav-item" onclick="navTo('amortize')"><i class="ph ph-table"></i> ตารางผ่อน</a>
     </nav>
     
@@ -573,6 +578,13 @@
         </div>
       </div>
 
+      <div id="page-reports" class="page">
+        <div id="reportsArea">
+          <!-- Report charts will be injected here -->
+          <div class="loading-state"><div class="loader"></div>กำลังโหลดรายงาน...</div>
+        </div>
+      </div>
+
       <div id="page-amortize" class="page">
         <div class="glass-card">
            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
@@ -619,6 +631,7 @@
     <a class="mob-nav-item active" onclick="navTo('dashboard')"><i class="ph ph-squares-four"></i> ภาพรวม</a>
     <a class="mob-nav-item" onclick="navTo('add')"><i class="ph ph-plus-circle"></i> บันทึก</a>
     <a class="mob-nav-item" onclick="navTo('history')"><i class="ph ph-clock-counter-clockwise"></i> ประวัติ</a>
+    <a class="mob-nav-item" onclick="navTo('reports')"><i class="ph ph-chart-pie-slice"></i> รายงาน</a>
     <a class="mob-nav-item" onclick="navTo('settings')"><i class="ph ph-gear"></i> ตั้งค่า</a>
   </nav>
 
@@ -637,6 +650,7 @@ const ACCOUNTS_INFO = {
 let accountsData = [];
 let paymentsCache = [];
 let chartInstance = null;
+let reportChartInstances = {}; // For Reports page
 
 // --- SIMULATOR STATE ---
 let currentSimBaseBalance = 0;
@@ -671,6 +685,7 @@ const pageTitles = {
   'dashboard': 'ภาพรวมสินทรัพย์ (Dashboard)',
   'add': 'บันทึกรายการชำระเงิน',
   'history': 'ประวัติการทำรายการ',
+  'reports': 'รายงานและสถิติ (Reports)',
   'amortize': 'ตารางประมาณการผ่อน',
   'settings': 'การตั้งค่าระบบ'
 };
@@ -691,6 +706,7 @@ function navTo(pageId) {
   if (pageId === 'dashboard') loadDashboard();
   if (pageId === 'add') refreshAddForm();
   if (pageId === 'history') loadHistory();
+  if (pageId === 'reports') loadReports();
   if (pageId === 'amortize') loadAmortize();
   if (pageId === 'settings') document.getElementById('set_gasUrl').value = GAS_URL;
 }
@@ -709,6 +725,8 @@ function toggleTheme() {
   // Re-render chart to match theme colors if on dashboard
   if(document.getElementById('page-dashboard').classList.contains('active') && accountsData.length > 0) {
       loadDashboard(); 
+  } else if (document.getElementById('page-reports').classList.contains('active') && paymentsCache.length > 0) {
+      loadReports();
   }
 }
 
@@ -1277,6 +1295,170 @@ async function loadHistory() {
         </div>`;
     } catch(e) {
         el.innerHTML = `<div style="color:var(--danger);">${e.message}</div>`;
+    }
+}
+
+async function loadReports() {
+    const el = document.getElementById('reportsArea');
+    
+    if(!GAS_URL) {
+        el.innerHTML = `<div class="glass-card" style="text-align:center;"><p>กรุณาเชื่อมต่อฐานข้อมูลก่อนดูรายงาน</p></div>`;
+        return;
+    }
+
+    el.innerHTML = '<div class="loading-state"><div class="loader"></div>กำลังวิเคราะห์ข้อมูล...</div>';
+
+    try {
+        // Fetch data if cache is empty
+        if(paymentsCache.length === 0 || accountsData.length === 0) {
+            const [summaryData, paymentsData] = await Promise.all([
+                callGAS({ action: 'getSummary' }),
+                callGAS({ action: 'getPayments' })
+            ]);
+            accountsData = summaryData.accounts;
+            paymentsCache = paymentsData.payments || [];
+        }
+
+        if(paymentsCache.length === 0) {
+            el.innerHTML = '<div class="glass-card" style="text-align:center; padding: 60px 20px;"><i class="ph ph-chart-polar" style="font-size:48px; color:var(--text-muted); margin-bottom:16px;"></i><p>ยังไม่มีประวัติการทำรายการสำหรับสร้างรายงาน</p></div>';
+            return;
+        }
+
+        // Aggregate Data for Charts
+        const monthlyData = {};
+        let totalPrincipalPaid = 0;
+        let totalInterestPaid = 0;
+
+        paymentsCache.forEach(p => {
+            totalPrincipalPaid += p.principal;
+            totalInterestPaid += p.interest;
+
+            const d = new Date(p.date);
+            const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
+            if(!monthlyData[ym]) monthlyData[ym] = { principal: 0, interest: 0 };
+            monthlyData[ym].principal += p.principal;
+            monthlyData[ym].interest += p.interest;
+        });
+
+        // Setup UI for charts
+        el.innerHTML = `
+        <div class="glass-card" style="margin-bottom: 24px;">
+            <h3 class="section-title"><i class="ph ph-trend-up"></i> แนวโน้มการชำระเงินย้อนหลัง</h3>
+            <div style="position:relative; height:300px;">
+                <canvas id="chartTrend"></canvas>
+            </div>
+        </div>
+        <div class="grid-cols-2">
+            <div class="glass-card">
+                <h3 class="section-title"><i class="ph ph-chart-pie-slice"></i> สัดส่วน เงินต้น / ดอกเบี้ย</h3>
+                <div style="position:relative; height:250px;">
+                    <canvas id="chartPieRatio"></canvas>
+                </div>
+            </div>
+            <div class="glass-card">
+                <h3 class="section-title"><i class="ph ph-wallet"></i> หนี้คงเหลือแยกตามบัญชี</h3>
+                <div style="position:relative; height:250px;">
+                    <canvas id="chartDoughnutBal"></canvas>
+                </div>
+            </div>
+        </div>`;
+
+        // Chart Utilities
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#94A3B8' : '#475569';
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const thMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+        // Destroy old instances
+        Object.values(reportChartInstances).forEach(c => c.destroy());
+
+        // --- Chart 1: Trend ---
+        const sortedMonths = Object.keys(monthlyData).sort();
+        const trendLabels = sortedMonths.map(ym => {
+            const [y, m] = ym.split('-');
+            return `${thMonths[parseInt(m)-1]} ${y}`;
+        });
+        const pData = sortedMonths.map(ym => monthlyData[ym].principal);
+        const iData = sortedMonths.map(ym => monthlyData[ym].interest);
+
+        reportChartInstances.trend = new Chart(document.getElementById('chartTrend').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [
+                    { label: 'เงินต้น', data: pData, backgroundColor: '#10B981', borderRadius: 4 },
+                    { label: 'ดอกเบี้ย', data: iData, backgroundColor: '#D4AF37', borderRadius: 4 }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: textColor, font: {family: "'Prompt'"} } },
+                    tooltip: { titleFont: {family: "'Prompt'"}, bodyFont: {family: "'Prompt'"}, callbacks: { label: c => ` ${fmt(c.raw)} บาท` } }
+                },
+                scales: {
+                    x: { stacked: true, grid: { display: false }, ticks: { color: textColor, font: {family: "'Prompt'"} } },
+                    y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor, font: {family: "'Space Grotesk'"} } }
+                }
+            }
+        });
+
+        // --- Chart 2: Principal vs Interest ---
+        reportChartInstances.pie = new Chart(document.getElementById('chartPieRatio').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['เงินต้นที่ลดไปแล้ว', 'ดอกเบี้ยสะสม'],
+                datasets: [{
+                    data: [totalPrincipalPaid, totalInterestPaid],
+                    backgroundColor: ['#10B981', '#D4AF37'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: textColor, font: {family: "'Prompt'"} } },
+                    tooltip: { bodyFont: {family: "'Prompt'"}, callbacks: { label: c => ` ${fmt(c.raw)} บาท` } }
+                },
+                cutout: '60%'
+            }
+        });
+
+        // --- Chart 3: Balance by Account ---
+        const accLabels = [];
+        const accBalances = [];
+        const accColors = ['#3B82F6', '#8B5CF6', '#F43F5E', '#14B8A6'];
+        accountsData.forEach(a => {
+            if(a.balance > 0) {
+                accLabels.push(a.name);
+                accBalances.push(a.balance);
+            }
+        });
+
+        reportChartInstances.bal = new Chart(document.getElementById('chartDoughnutBal').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: accLabels,
+                datasets: [{
+                    data: accBalances,
+                    backgroundColor: accColors.slice(0, accLabels.length),
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: textColor, font: {family: "'Prompt'"} } },
+                    tooltip: { bodyFont: {family: "'Prompt'"}, callbacks: { label: c => ` ${fmt(c.raw)} บาท` } }
+                },
+                cutout: '60%'
+            }
+        });
+
+    } catch (e) {
+        el.innerHTML = `<div class="glass-card"><p style="color:var(--danger);"><i class="ph ph-warning-circle"></i> ${e.message}</p></div>`;
     }
 }
 
