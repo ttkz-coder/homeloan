@@ -3,563 +3,647 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>My Mortgage Tracker</title>
+<title>Luxe Mortgage Tracker</title>
     
-  <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
-    <link rel="apple-touch-icon" href="home-loan.jpg">
-    <link rel="icon" type="image/jpg" href="home-loan.jpg">
-    <meta name="apple-mobile-web-app-title" content="Homeloan">
+<!-- App Icons -->
+<link rel="apple-touch-icon" href="home-loan.jpg">
+<link rel="icon" type="image/jpg" href="home-loan.jpg">
+<meta name="apple-mobile-web-app-title" content="LuxeMortgage">
+<meta name="theme-color" content="#0B132B">
     
-<!-- นำเข้า Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+<!-- Fonts: Prompt for elegant Thai, Space Grotesk for numbers -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+<!-- Icons -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
   :root {
-    /* Modern Color Palette */
-    --navy: #0F172A;        /* Slate 900 */
-    --navy2: #1E293B;       /* Slate 800 */
-    --blue: #0284C7;        /* Sky 600 */
-    --blue-hover: #0369A1;  /* Sky 700 */
-    --sky: #38BDF8;         /* Sky 400 */
-    --sky2: #F0F9FF;        /* Sky 50 */
-    --gold: #F59E0B;        /* Amber 500 */
-    --gold2: #FEF3C7;       /* Amber 100 */
-    --orange: #EA580C;      /* Orange 600 */
-    --green: #10B981;       /* Emerald 500 */
-    --green2: #D1FAE5;      /* Emerald 100 */
-    --red: #EF4444;         /* Red 500 */
-    --red2: #FEE2E2;        /* Red 100 */
+    /* LUXURY DARK THEME (Default) */
+    --bg-base: #070B19;
+    --bg-surface: #0B132B;
+    --bg-surface-elevated: #16203D;
     
-    --bg: #F8FAFC;          /* Slate 50 */
-    --card: #FFFFFF;
-    --text: #334155;        /* Slate 700 */
-    --text-dark: #0F172A;   /* Slate 900 */
-    --muted: #64748B;       /* Slate 500 */
-    --border: #E2E8F0;      /* Slate 200 */
+    --text-primary: #FFFFFF;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
     
-    --radius: 20px;
-    --radius-md: 14px;
-    --radius-sm: 10px;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.025);
-    --shadow-float: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --accent-gold: #D4AF37;
+    --accent-gold-hover: #F3E5AB;
+    --accent-gold-dim: rgba(212, 175, 55, 0.15);
+    
+    --success: #10B981;
+    --danger: #EF4444;
+    --info: #3B82F6;
+    
+    --border-color: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(11, 19, 43, 0.7);
+    --glass-border: rgba(212, 175, 55, 0.2);
+    
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.15);
+    
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 8px;
+  }
+
+  [data-theme="light"] {
+    --bg-base: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-surface-elevated: #F1F5F9;
+    
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    
+    --accent-gold: #B8860B;
+    --accent-gold-hover: #D4AF37;
+    --accent-gold-dim: rgba(184, 134, 11, 0.1);
+    
+    --border-color: rgba(0, 0, 0, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(184, 134, 11, 0.3);
+    
+    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.05);
+    --shadow-glow: 0 0 20px rgba(184, 134, 11, 0.1);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  
   body {
-    font-family: 'IBM Plex Sans Thai', sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    font-family: 'Prompt', sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
     min-height: 100vh;
     font-size: 15px;
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
+    transition: background-color 0.3s, color 0.3s;
+    overflow-x: hidden;
   }
 
-  /* === HEADER === */
-  .header {
-    background: var(--navy);
-    color: #fff;
-    padding: 20px 24px 24px;
+  .number-font {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.5px;
+  }
+
+  .app-container {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Desktop Sidebar */
+  .sidebar {
+    width: 260px;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+    transition: all 0.3s;
+  }
+
+  .brand {
+    padding: 32px 24px;
     display: flex;
     align-items: center;
     gap: 16px;
-    position: sticky; top: 0; z-index: 100;
   }
-  .header-logo {
-    width: 48px; height: 48px;
-    background: linear-gradient(135deg, var(--gold), var(--orange));
-    border-radius: var(--radius-md);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; font-weight: 700; color: #fff;
-    box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
-    flex-shrink: 0;
-  }
-  .header-info { flex: 1; min-width: 0; }
-  .header-info h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #F8FAFC;}
-  .header-info p  { font-size: 13px; color: #94A3B8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .header-status {
-    margin-left: auto;
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: #CBD5E1; font-weight: 500;
-    background: rgba(255,255,255,0.1);
-    padding: 6px 12px;
-    border-radius: 20px;
-    backdrop-filter: blur(4px);
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-  /* === TABS === */
-  .tabs-container {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 92px; z-index: 99;
-    box-shadow: var(--shadow-sm);
+  .brand-logo {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent-gold), #8A6A1C);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    box-shadow: var(--shadow-glow);
   }
-  .tabs {
-    display: flex; gap: 8px;
-    padding: 12px 24px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    max-width: 1000px; margin: 0 auto;
+
+  .brand-text h1 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    background: linear-gradient(to right, var(--text-primary), var(--accent-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab {
-    padding: 10px 20px;
-    font-size: 14px; font-weight: 600;
-    color: var(--muted);
-    background: transparent;
-    border-radius: 100px;
+
+  .nav-menu {
+    flex: 1;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
     cursor: pointer;
-    transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-    border: none;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .nav-item i { font-size: 22px; }
+
+  .nav-item:hover {
+    background: var(--bg-surface-elevated);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    background: var(--accent-gold-dim);
+    color: var(--accent-gold);
+    border-color: var(--glass-border);
+  }
+
+  .sidebar-footer {
+    padding: 24px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  /* Main Content Area */
+  .main-content {
+    flex: 1;
+    margin-left: 260px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    height: 80px;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(var(--bg-base), 0.8);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 100px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse 2s infinite;
+  }
+
+  .theme-toggle {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+    font-size: 20px;
+  }
+  .theme-toggle:hover { background: var(--bg-surface-elevated); }
+
+  .page-container {
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .page { display: none; animation: fadeIn 0.4s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  .glass-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    opacity: 0.5;
+  }
+
+  .section-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title i { color: var(--accent-gold); }
+
+  /* Grid Layouts */
+  .grid-cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .grid-cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+
+  /* Metric Card */
+  .metric-card {
+    background: var(--bg-surface-elevated);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow);
+    border-color: var(--glass-border);
+  }
+  .metric-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+  .metric-value { font-size: 32px; font-weight: 600; color: var(--text-primary); line-height: 1.1; }
+  .metric-sub { font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+  .text-gold { color: var(--accent-gold) !important; }
+  .text-success { color: var(--success) !important; }
+
+  /* Custom Slider for Simulator */
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border-color);
+    height: 6px;
+    border-radius: 4px;
     outline: none;
   }
-  .tab:hover { color: var(--navy); background: var(--bg); }
-  .tab.active { background: var(--sky2); color: var(--blue); box-shadow: inset 0 0 0 1px var(--sky); }
-
-  /* === CONTENT === */
-  .content { padding: 32px 24px; max-width: 1000px; margin: 0 auto; }
-  .page { display: none; animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-  .page.active { display: block; }
-  @keyframes slideUpFade { from{opacity:0; transform:translateY(15px);} to{opacity:1; transform:translateY(0);} }
-
-  /* === CARDS === */
-  .card {
-    background: var(--card);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 28px;
-    margin-bottom: 24px;
-    border: 1px solid rgba(226, 232, 240, 0.6);
-  }
-  .card-title {
-    font-size: 16px; font-weight: 600; color: var(--text-dark);
-    margin-bottom: 20px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .card-title::before {
-    content: '';
-    width: 4px; height: 18px;
-    background: var(--blue);
-    border-radius: 4px;
-  }
-
-  /* === SUMMARY GRID === */
-  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .dashboard-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-  .metric {
-    background: var(--bg);
-    border-radius: var(--radius-md);
-    padding: 20px;
-    border: 1px solid var(--border);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .metric:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-  .metric-icon { font-size: 24px; margin-bottom: 12px; }
-  .metric-label { font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
-  .metric-value { font-size: 26px; font-weight: 600; color: var(--text-dark); font-family: 'IBM Plex Mono', monospace; line-height: 1.1; letter-spacing: -0.5px;}
-  .metric-value.red   { color: var(--red); }
-  .metric-value.green { color: var(--green); }
-  .metric-value.gold  { color: var(--gold); }
-  .metric-sub { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 400;}
-
-  /* === PROGRESS BAR === */
-  .progress-wrap { background: var(--border); border-radius: 100px; height: 8px; overflow: hidden; margin: 12px 0; }
-  .progress-bar  { height: 100%; background: linear-gradient(90deg, var(--sky), var(--blue)); border-radius: 100px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(2, 132, 199, 0.4);}
-
-  /* === ACCOUNT CARDS === */
-  .account-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-  .acc-card {
-    background: var(--card);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-    position: relative; overflow: hidden;
-    transition: box-shadow 0.2s;
-  }
-  .acc-card:hover { box-shadow: var(--shadow); }
-  .acc-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 4px;
-  }
-  .acc-card.home::before   { background: linear-gradient(90deg, var(--sky), var(--blue)); }
-  .acc-card.extra::before  { background: linear-gradient(90deg, var(--gold), var(--orange)); }
-  .acc-card.mrta::before   { background: linear-gradient(90deg, var(--green2), var(--green)); }
-  .acc-name    { font-size: 16px; font-weight: 600; color: var(--text-dark); margin-bottom: 12px; }
-  .acc-balance { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: var(--blue); line-height: 1.2; letter-spacing: -0.5px;}
-  .acc-orig    { font-size: 13px; color: var(--muted); margin-top: 6px; }
-  .acc-rate    { font-size: 14px; color: var(--text); margin-top: 16px; font-weight: 500; display: inline-block; background: var(--bg); padding: 4px 12px; border-radius: 6px;}
-  .acc-mini-prog { margin-top: 16px; }
-
-  /* === FORM === */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .form-group { display: flex; flex-direction: column; gap: 8px; }
-  .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 14px; font-weight: 500; color: var(--text-dark); }
-  input, select, textarea {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    font-size: 15px;
-    font-family: inherit;
-    color: var(--text-dark);
-    width: 100%;
-    transition: all .2s;
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
     appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent-gold);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    border: 2px solid #fff;
+    transition: transform 0.1s;
   }
-  select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 16px center; background-size: 16px; padding-right: 44px; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 4px var(--sky2); }
-  textarea { resize: vertical; min-height: 100px; }
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
 
-  /* === BUTTONS === */
+  /* Forms */
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;
+  }
+  .form-control {
+    width: 100%;
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px var(--accent-gold-dim);
+  }
+  select.form-control { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 16px center; background-size: 16px; }
+
+  /* Buttons */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 12px 24px;
+    padding: 14px 28px;
     border-radius: var(--radius-sm);
-    font-size: 15px; font-weight: 600;
-    cursor: pointer; border: none;
-    transition: all .2s;
-    font-family: inherit;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer; border: none; transition: all 0.3s;
   }
-  .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2); }
-  .btn-primary:hover { background: var(--blue-hover); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); }
-  .btn-gold { background: var(--gold); color: var(--text-dark); }
-  .btn-gold:hover { background: #D97706; }
-  .btn-outline { background: transparent; color: var(--text-dark); border: 1.5px solid var(--border); }
-  .btn-outline:hover { background: var(--bg); border-color: var(--muted); }
-  .btn-danger  { background: transparent; color: var(--red); border: 1.5px solid var(--red2); font-size: 13px; padding: 6px 16px; border-radius: 100px;}
-  .btn-danger:hover  { background: var(--red2); }
-  .btn-sm { padding: 8px 16px; font-size: 13px; }
-
-  /* === TABLE === */
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--card);}
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { background: var(--bg); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 20px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
-  td { padding: 16px 20px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-dark); }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--bg); }
-  .num { font-family: 'IBM Plex Mono', monospace; text-align: right; font-weight: 500; }
-  .badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 4px 12px; border-radius: 100px;
-    font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap;
-  }
-  .badge-home  { background: var(--sky2); color: var(--blue); }
-  .badge-extra { background: var(--gold2); color: var(--orange); }
-  .badge-mrta  { background: var(--green2); color: var(--green); }
-
-  /* === FILTER BAR === */
-  .filter-bar, .amo-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
-  .filter-bar select, .filter-bar input, .amo-controls select, .amo-controls input { width: auto; min-width: 180px; flex: 1; }
-  .filter-bar button, .amo-controls button { flex-shrink: 0; }
-
-  /* === SETTINGS === */
-  .settings-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-  .settings-row label { min-width: 150px; font-size: 14px; font-weight: 500; color: var(--text-dark); }
-  .settings-row input, .settings-row select { flex: 1; min-width: 200px; max-width: 500px; }
-
-  /* === TOAST === */
-  .toast-wrap { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-  .toast {
-    background: var(--navy);
+  .btn-gold {
+    background: linear-gradient(135deg, var(--accent-gold), #8A6A1C);
     color: #fff;
-    padding: 14px 24px;
-    border-radius: 100px;
-    font-size: 14px; font-weight: 500;
-    box-shadow: var(--shadow-float);
-    animation: slideUp .3s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex; align-items: center; gap: 10px; pointer-events: auto;
-    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
   }
-  .toast.success { background: var(--navy); border: 1px solid var(--green); color: var(--green2);}
-  .toast.error   { background: var(--red); color: #fff;}
-  @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
-
-  /* === LOADING === */
-  .loading { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 15px; }
-  .spinner {
-    width: 36px; height: 36px; border: 3px solid var(--border);
-    border-top-color: var(--blue); border-radius: 50%;
-    animation: spin .8s linear infinite; display: inline-block; margin-bottom: 16px;
+  .btn-gold:hover {
+    background: linear-gradient(135deg, var(--accent-gold-hover), var(--accent-gold));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
   }
-  @keyframes spin { to{transform:rotate(360deg)} }
-
-  /* === INFO === */
-  .info-box {
-    background: var(--sky2);
-    border: 1px solid var(--sky);
-    border-radius: var(--radius-sm);
-    padding: 16px 20px;
-    font-size: 14px;
-    margin-bottom: 20px;
-    color: var(--blue-hover);
-    line-height: 1.6;
-    display: flex; gap: 12px; align-items: flex-start;
+  .btn-outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
   }
-  .info-box-danger {
-      background: var(--red2);
-      border-color: #FCA5A5;
-      color: var(--red);
+  .btn-outline:hover {
+    background: var(--bg-surface-elevated);
+    border-color: var(--accent-gold);
   }
 
-  /* === MODAL-LIKE SECTION === */
-  .section-title {
-    font-size: 18px; font-weight: 600; color: var(--text-dark);
-    margin-bottom: 20px; padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+  /* House Visualizer Gimmick */
+  .visualizer-container {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-surface-elevated);
+    border-radius: var(--radius-md);
+    padding: 32px;
+    border: 1px solid var(--border-color);
+  }
+  .house-svg-wrap {
+    width: 120px; height: 120px;
+    position: relative;
+  }
+  .house-svg { width: 100%; height: 100%; fill: var(--bg-base); stroke: var(--border-color); stroke-width: 2; }
+  .house-fill {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    background: linear-gradient(0deg, var(--accent-gold), #8A6A1C);
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M240,115.54,136.21,26.47a16,16,0,0,0-20.89-.25L15.65,115.82a8,8,0,0,0,10.61,12.18l21.74-18.9V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V109.11L229.47,128A8,8,0,0,0,240,115.54ZM192,208H64V95.2L125.76,41.42l66.24,56.84Z'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M240,115.54,136.21,26.47a16,16,0,0,0-20.89-.25L15.65,115.82a8,8,0,0,0,10.61,12.18l21.74-18.9V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V109.11L229.47,128A8,8,0,0,0,240,115.54ZM192,208H64V95.2L125.76,41.42l66.24,56.84Z'/%3E%3C/svg%3E");
+    mask-size: cover; -webkit-mask-size: cover;
+    transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Tables */
+  .table-responsive { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  th { background: var(--bg-surface-elevated); color: var(--text-secondary); font-weight: 500; padding: 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
+  td { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--accent-gold-dim); }
+  .badge { display: inline-flex; padding: 4px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .badge-home { background: rgba(59, 130, 246, 0.1); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.3); }
+  .badge-extra { background: var(--accent-gold-dim); color: var(--accent-gold); border: 1px solid var(--glass-border); }
+
+  /* Toast & Loading */
+  #toastWrap { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .toast { background: var(--bg-surface-elevated); border: 1px solid var(--border-color); color: var(--text-primary); padding: 16px 24px; border-radius: var(--radius-sm); box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 12px; animation: slideInRight 0.3s forwards; pointer-events: auto; }
+  @keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+  
+  .loader { border: 3px solid var(--border-color); border-top: 3px solid var(--accent-gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .loading-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+
+  /* Confetti Canvas */
+  #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10000; }
+
+  .mobile-bottom-nav { display: none; }
+
+  @media (max-width: 992px) {
+    .grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
   }
 
-  .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); font-size: 15px; background: var(--bg); border-radius: var(--radius-md); border: 1px dashed var(--border);}
-
-  /* === YEARLY REPORT TABLE === */
-  .yearly-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  .yearly-table th { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: right; background: var(--bg); color: var(--muted); font-weight: 500;}
-  .yearly-table th:first-child { text-align: left; }
-  .yearly-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); text-align: right; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
-  .yearly-table td:first-child { text-align: left; font-family: 'IBM Plex Sans Thai', sans-serif; font-weight: 600; color: var(--text-dark); }
-  .yearly-table tr.current-year { background: var(--sky2); }
-  .yearly-table tr:last-child td { border-bottom: none; }
-
-  /* =========================================
-     📱 MOBILE RESPONSIVE (MAX-WIDTH: 768px)
-     ========================================= */
   @media (max-width: 768px) {
-    .header { padding: 16px; gap: 12px; }
-    .header-logo { width: 40px; height: 40px; font-size: 20px; border-radius: 10px;}
-    .header-info h1 { font-size: 16px; }
-    .header-info p  { font-size: 12px; }
+    .app-container { flex-direction: column; }
+    .sidebar { display: none; }
+    .main-content { margin-left: 0; padding-bottom: 80px; }
+    .topbar { padding: 0 20px; height: 64px; }
+    .page-container { padding: 20px; }
+    .grid-cols-3, .grid-cols-2 { grid-template-columns: 1fr; }
     
-    .tabs-container { top: 72px; }
-    .tabs { padding: 10px 16px; gap: 4px;}
-    .tab { padding: 8px 16px; font-size: 13px; }
+    .glass-card { padding: 20px; }
+    .visualizer-container { flex-direction: column; text-align: center; gap: 20px; }
     
-    .content { padding: 20px 16px; }
-    .card { padding: 20px; margin-bottom: 16px; border-radius: var(--radius-md);}
-    
-    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .dashboard-grid-2 { grid-template-columns: 1fr; gap: 16px; }
-    .metric { padding: 16px; }
-    .metric-value { font-size: 22px; }
-    
-    .form-grid { grid-template-columns: 1fr; gap: 16px; }
-    
-    .filter-bar, .amo-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .filter-bar select, .amo-controls select { grid-column: 1 / -1; width: 100%; min-width: unset; }
-    .filter-bar input[type="month"] { grid-column: 1 / -1; width: 100%; min-width: unset; }
-    .filter-bar button, .amo-controls button { width: 100%; }
-    .amo-controls > div { grid-column: 1 / -1; width: 100%; }
-    
-    .settings-row { flex-direction: column; align-items: stretch; gap: 8px; }
-    .settings-row label { margin-bottom: 4px; font-size: 13px;}
-    .settings-row input, .settings-row select { max-width: 100%; }
-    
-    .account-cards { grid-template-columns: 1fr; }
-    
-    .toast-wrap { bottom: 24px; width: 90%; }
-    .toast { width: 100%; justify-content: center; }
+    /* Mobile App Navigation */
+    .mobile-bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 70px;
+      background: rgba(var(--bg-surface), 0.9);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-color);
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .mob-nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      color: var(--text-secondary); font-size: 11px; font-weight: 500;
+      text-decoration: none; padding: 8px;
+    }
+    .mob-nav-item i { font-size: 24px; }
+    .mob-nav-item.active { color: var(--accent-gold); }
   }
 </style>
 </head>
-<body>
+<body data-theme="dark">
 
-<!-- HEADER -->
-<div class="header">
-  <div class="header-logo">T</div>
-  <div class="header-info">
-    <h1>My Mortgage Tracker</h1>
-    <p>ระบบบันทึกการผ่อนบ้าน | เริ่มสัญญา 16 พ.ค. 2569</p>
-  </div>
-  <div class="header-status">
-    <div class="dot"></div>
-    <span id="connectionStatus">กำลังเชื่อมต่อ...</span>
-  </div>
-</div>
+<canvas id="confetti-canvas"></canvas>
+<div id="toastWrap"></div>
 
-<!-- TABS -->
-<div class="tabs-container">
-  <div class="tabs">
-    <button class="tab active" onclick="showPage('dashboard')">ภาพรวม</button>
-    <button class="tab" onclick="showPage('add')">บันทึกชำระ</button>
-    <button class="tab" onclick="showPage('history')">ประวัติ</button>
-    <button class="tab" onclick="showPage('amortize')">ตารางผ่อน</button>
-    <button class="tab" onclick="showPage('settings')">ตั้งค่า</button>
-  </div>
-</div>
-
-<!-- CONTENT -->
-<div class="content">
-
-  <!-- PAGE: DASHBOARD -->
-  <div id="page-dashboard" class="page active">
-    <div id="summaryArea">
-      <div class="loading"><div class="spinner"></div><br>กำลังโหลดข้อมูล...</div>
+<div class="app-container">
+  
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><i class="ph ph-buildings"></i></div>
+      <div class="brand-text">
+        <h1>Luxe<br>Mortgage</h1>
+      </div>
     </div>
-  </div>
+    
+    <nav class="nav-menu">
+      <a class="nav-item active" onclick="navTo('dashboard')"><i class="ph ph-squares-four"></i> ภาพรวม</a>
+      <a class="nav-item" onclick="navTo('add')"><i class="ph ph-plus-circle"></i> บันทึกชำระ</a>
+      <a class="nav-item" onclick="navTo('history')"><i class="ph ph-clock-counter-clockwise"></i> ประวัติ</a>
+      <a class="nav-item" onclick="navTo('amortize')"><i class="ph ph-table"></i> ตารางผ่อน</a>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <a class="nav-item" onclick="navTo('settings')" style="padding: 10px; justify-content: center; border: 1px solid var(--border-color);"><i class="ph ph-gear"></i> การตั้งค่า</a>
+    </div>
+  </aside>
 
-  <!-- PAGE: ADD PAYMENT -->
-  <div id="page-add" class="page">
-    <div class="card">
-      <div class="section-title">บันทึกการชำระเงิน</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>บัญชี *</label>
-          <select id="f_account" onchange="onAccountChange()">
-            <option value="">-- เลือกบัญชี --</option>
-          </select>
+  <main class="main-content">
+    <header class="topbar">
+      <div>
+        <h2 style="font-size: 18px; font-weight: 500;" id="pageTitle">ภาพรวม (Dashboard)</h2>
+        <div id="greetingText" style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="connection-status">
+          <div class="status-dot" id="connDot"></div>
+          <span id="connectionStatus">กำลังตรวจสอบ...</span>
         </div>
-        <div class="form-group">
-          <label>วันที่ชำระ *</label>
-          <input type="date" id="f_date" onchange="calcFields()"/>
+        <button class="theme-toggle" onclick="toggleTheme()" title="สลับโหมดสี">
+          <i class="ph ph-moon" id="themeIcon"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="page-container">
+      
+      <div id="page-dashboard" class="page active">
+        <div id="summaryArea">
+          <div class="loading-state"><div class="loader"></div>กำลังดึงข้อมูลสินทรัพย์ของคุณ...</div>
         </div>
-        <div class="form-group full" id="minPayHint" style="display:none;">
-          <div style="background:var(--sky2); border: 1px solid var(--sky); border-radius:var(--radius-sm); padding:16px; font-size:14px; color:var(--blue-hover); display:flex; align-items:center; gap:12px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 180px;">💡 ยอดชำระขั้นต่ำบัญชีนี้:
-              <strong id="minPayValue" style="font-family:'IBM Plex Mono',monospace; font-size:16px; margin:0 4px; color: var(--blue);"></strong> บาท/งวด
+      </div>
+
+      <div id="page-add" class="page">
+        <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
+          <h2 class="section-title"><i class="ph ph-receipt"></i> บันทึกการชำระเงินใหม่</h2>
+          
+          <div class="grid-cols-2" style="margin-bottom: 24px;">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>เลือกบัญชีสินเชื่อ *</label>
+              <select id="f_account" class="form-control" onchange="onAccountChange()">
+                <option value="">กำลังโหลด...</option>
+              </select>
             </div>
-            <button type="button" class="btn btn-sm" style="background:var(--blue); color:#fff;" onclick="fillMinPay()">ใช้ยอดขั้นต่ำ</button>
+            
+            <div class="form-group">
+              <label>วันที่ทำรายการ *</label>
+              <input type="date" id="f_date" class="form-control" onchange="calcFields()"/>
+            </div>
+            
+            <div class="form-group">
+              <label>ยอดเงินที่ชำระ (บาท) *</label>
+              <input type="number" id="f_total" class="form-control number-font" placeholder="0.00" oninput="calcFields()"/>
+              <div id="minPayHint" style="display:none; margin-top: 8px; font-size: 13px; color: var(--accent-gold);">
+                💡 ขั้นต่ำ: <span id="minPayValue" class="number-font" style="cursor:pointer; text-decoration:underline;" onclick="fillMinPay()"></span> บาท
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>หักดอกเบี้ย (ระบบคำนวณให้)</label>
+              <input type="number" id="f_interest" class="form-control number-font" style="color:var(--accent-gold);" placeholder="0.00" oninput="calcPrincipal()"/>
+              <div id="daysHint" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;"></div>
+            </div>
+            
+            <div class="form-group">
+              <label>ตัดเงินต้น</label>
+              <input type="number" id="f_principal" class="form-control number-font" style="color:var(--success); background: var(--bg-base); cursor:not-allowed;" readonly placeholder="0.00"/>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>หมายเหตุ / บันทึกช่วยจำ</label>
+            <input type="text" id="f_note" class="form-control" placeholder="เช่น โบนัสออก จ่ายโปะ..."/>
+          </div>
+          
+          <div style="display: flex; gap: 16px; margin-top: 32px;">
+            <button class="btn btn-gold" style="flex: 2;" onclick="submitPayment()" id="btnSubmitPay"><i class="ph ph-check-circle"></i> ยืนยันการทำรายการ</button>
+            <button class="btn btn-outline" style="flex: 1;" onclick="clearForm()">ล้างข้อมูล</button>
           </div>
         </div>
-        <div class="form-group">
-          <label>ยอดชำระทั้งหมด (บาท) *</label>
-          <input type="number" id="f_total" placeholder="0.00" step="0.01" oninput="calcFields()"/>
-        </div>
-        <div class="form-group">
-          <label>ดอกเบี้ย (บาท) — คำนวณอัตโนมัติ</label>
-          <input type="number" id="f_interest" placeholder="คำนวณอัตโนมัติ" step="0.01" oninput="calcPrincipal()"/>
-        </div>
-        <div class="form-group">
-          <label>เงินต้น (บาท)</label>
-          <input type="number" id="f_principal" placeholder="คำนวณอัตโนมัติ" step="0.01" readonly style="background:var(--bg); cursor: not-allowed;"/>
-        </div>
-        <div class="form-group">
-          <label>ยอดคงเหลือหลังชำระ (ประมาณ)</label>
-          <input type="text" id="f_remaining" readonly style="background:var(--bg); cursor: not-allowed; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--blue)"/>
-        </div>
-        <div class="form-group full">
-          <label>หมายเหตุ</label>
-          <textarea id="f_note" placeholder="ข้อมูลเพิ่มเติม..."></textarea>
+      </div>
+
+      <div id="page-history" class="page">
+        <div class="glass-card">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
+             <h2 class="section-title" style="margin:0;"><i class="ph ph-clock-counter-clockwise"></i> ประวัติการทำรายการ</h2>
+             <div style="display:flex; gap:12px;">
+                <select id="hist_account" class="form-control" style="width: auto;" onchange="loadHistory()"><option value="">ทุกบัญชี</option></select>
+                <button class="btn btn-outline" style="padding: 8px 16px;" onclick="loadHistory()"><i class="ph ph-arrows-clockwise"></i></button>
+             </div>
+           </div>
+           <div id="historyArea">
+              <div class="loading-state"><div class="loader"></div>กำลังโหลดประวัติ...</div>
+           </div>
         </div>
       </div>
-      <div style="display:flex; gap:16px; margin-top:24px; flex-wrap: wrap;">
-        <button class="btn btn-primary" style="flex:1; min-width: 180px;" onclick="submitPayment()">💾 บันทึกการชำระ</button>
-        <button class="btn btn-outline" style="flex:1; min-width: 120px;" onclick="clearForm()">ล้างข้อมูล</button>
+
+      <div id="page-amortize" class="page">
+        <div class="glass-card">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
+             <h2 class="section-title" style="margin:0;"><i class="ph ph-chart-line-up"></i> ตารางประมาณการผ่อนชำระ</h2>
+             <div style="display:flex; gap:12px; align-items:center;">
+                <select id="amo_account" class="form-control" style="width: auto;" onchange="loadAmortize()"><option value="">ทุกบัญชี</option></select>
+                <input type="number" id="amo_months" class="form-control" value="12" min="1" max="60" style="width: 80px;" onchange="loadAmortize()"/>
+                <span style="color:var(--text-muted); font-size:14px;">งวด</span>
+             </div>
+           </div>
+           <div id="amortizeArea">
+              <div class="loading-state"><div class="loader"></div>กำลังประมวลผลตาราง...</div>
+           </div>
+        </div>
       </div>
-      <div id="addResult" style="margin-top:16px;"></div>
+
+      <div id="page-settings" class="page">
+        <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
+          <h2 class="section-title"><i class="ph ph-gear"></i> การตั้งค่าระบบ</h2>
+          
+          <div style="background: var(--accent-gold-dim); border: 1px solid var(--glass-border); padding: 16px; border-radius: var(--radius-sm); margin-bottom: 24px;">
+            <strong style="color: var(--accent-gold); display:flex; align-items:center; gap:8px;"><i class="ph ph-database"></i> การเชื่อมต่อฐานข้อมูล (Google Sheets)</strong>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">นำ URL Web App จาก Google Apps Script มาวางที่นี่เพื่อให้แอปทำงานประสานกับข้อมูลของคุณ</p>
+          </div>
+
+          <div class="form-group">
+            <label>GAS Web App URL</label>
+            <input type="url" id="set_gasUrl" class="form-control" placeholder="https://script.google.com/..."/>
+          </div>
+          
+          <div style="display:flex; gap:16px; margin-top: 24px;">
+            <button class="btn btn-gold" onclick="saveSettings()">บันทึกการตั้งค่า</button>
+            <button class="btn btn-outline" onclick="testConnection()" id="btnTestConn">ทดสอบการเชื่อมต่อ</button>
+          </div>
+          
+          <div id="settingsResult" style="margin-top:20px;"></div>
+        </div>
+      </div>
+
     </div>
-  </div>
+  </main>
+  
+  <nav class="mobile-bottom-nav">
+    <a class="mob-nav-item active" onclick="navTo('dashboard')"><i class="ph ph-squares-four"></i> ภาพรวม</a>
+    <a class="mob-nav-item" onclick="navTo('add')"><i class="ph ph-plus-circle"></i> บันทึก</a>
+    <a class="mob-nav-item" onclick="navTo('history')"><i class="ph ph-clock-counter-clockwise"></i> ประวัติ</a>
+    <a class="mob-nav-item" onclick="navTo('settings')"><i class="ph ph-gear"></i> ตั้งค่า</a>
+  </nav>
 
-  <!-- PAGE: HISTORY -->
-  <div id="page-history" class="page">
-    <div class="card">
-      <div class="section-title">ประวัติการชำระเงิน</div>
-      <div class="filter-bar">
-        <select id="hist_account" onchange="loadHistory()">
-          <option value="">ทุกบัญชี</option>
-        </select>
-        <input type="month" id="hist_month" onchange="loadHistory()" placeholder="เดือน"/>
-        <button class="btn btn-outline" onclick="loadHistory()">🔄 รีเฟรช</button>
-        <button class="btn btn-outline" style="color:var(--text-dark); border-color: var(--border);" onclick="exportCSV()">⬇ Export CSV</button>
-      </div>
-      <div id="historyArea">
-        <div class="loading"><div class="spinner"></div><br>กำลังโหลด...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE: AMORTIZE -->
-  <div id="page-amortize" class="page">
-    <div class="card">
-      <div class="section-title">ตารางผ่อนชำระ (Amortization Schedule)</div>
-      <div class="amo-controls">
-        <select id="amo_account" onchange="loadAmortize()">
-          <option value="">ทุกบัญชี</option>
-        </select>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <label style="font-size:14px; white-space:nowrap; color:var(--muted); font-weight: 500;">จำนวนงวด:</label>
-          <input type="number" id="amo_months" value="12" min="1" max="360" style="flex:1; text-align:center;" onchange="loadAmortize()"/>
-        </div>
-        <button class="btn btn-outline" onclick="loadAmortize()">คำนวณใหม่</button>
-      </div>
-      <div id="amortizeArea">
-        <div class="loading"><div class="spinner"></div><br>กำลังคำนวณ...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE: SETTINGS -->
-  <div id="page-settings" class="page">
-    <div class="card">
-      <div class="section-title">ตั้งค่า GAS Endpoint</div>
-      <div class="info-box">
-        <span style="font-size: 20px;">🔗</span>
-        <div>
-          <strong>วาง URL ของ Google Apps Script Web App ที่ Deploy แล้ว</strong><br>
-          <small style="opacity:0.8; word-break:break-all; font-family:'IBM Plex Mono', monospace;">ตัวอย่าง: https://script.google.com/macros/s/AKfycb.../exec</small>
-        </div>
-      </div>
-      <div class="settings-row">
-        <label>GAS Web App URL</label>
-        <input type="url" id="set_gasUrl" placeholder="https://script.google.com/..."/>
-      </div>
-      <div style="display:flex; gap:16px; flex-wrap:wrap;">
-        <button class="btn btn-primary" style="flex:1; min-width: 150px;" onclick="saveSettings()">💾 บันทึก URL</button>
-        <button class="btn btn-outline" style="flex:1; min-width: 150px;" onclick="testConnection()">⚡ ทดสอบเชื่อมต่อ</button>
-      </div>
-      <div id="settingsResult" style="margin-top:20px;"></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">อัปเดตอัตราดอกเบี้ย</div>
-      <div id="rateCards" class="account-cards"></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">วิธีติดตั้ง (คำแนะนำ)</div>
-      <ol style="line-height:2.2; padding-left:24px; font-size:15px; color:var(--text);">
-        <li>เปิด <strong>Google Sheets</strong> สร้างสเปรดชีตใหม่</li>
-        <li>เปิดเมนู <strong>Extensions → Apps Script</strong></li>
-        <li>วางโค้ดจากไฟล์ <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">Code.gs</code> ที่ดาวน์โหลดไป</li>
-        <li>บันทึก แล้วรันฟังก์ชัน <code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">initSheets()</code> ครั้งแรกเพื่อสร้างโครงสร้างชีท</li>
-        <li>ไปที่ปุ่มสีฟ้ามุมขวาบน <strong>Deploy → New deployment → Web App</strong></li>
-        <li>ตั้งค่า <em>Execute as: Me</em> และ <em>Who has access: Anyone</em></li>
-        <li>คัดลอก URL ที่ได้ มาวางในช่อง GAS Web App URL ด้านบน</li>
-      </ol>
-    </div>
-  </div>
-
-</div><!-- end content -->
-
-<!-- TOAST CONTAINER -->
-<div class="toast-wrap" id="toastWrap"></div>
+</div>
 
 <script>
-// =============================================
-//  CONFIG
-// =============================================
-let GAS_URL = 'https://script.google.com/macros/s/AKfycbyEuuCpoMdgDpjg38wMvO-mLhbkCPwKUM3DkHH9_-sdi0b90KsYhT9iZk9PT1ffEZsb/exec';
+// --- CONFIG & STATE ---
+let GAS_URL = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbyEuuCpoMdgDpjg38wMvO-mLhbkCPwKUM3DkHH9_-sdi0b90KsYhT9iZk9PT1ffEZsb/exec';
 
 const ACCOUNTS_INFO = {
-  HOME:  { name: 'สินเชื่อตัวบ้าน',               badge: 'badge-home',  cls: 'home',  orig: 2153000, minPayment: 10500 },
-  EXTRA: { name: 'สินเชื่อเงินกู้เพิ่ม',           badge: 'badge-extra', cls: 'extra', orig: 120000,  minPayment: 800   },
-  MRTA:  { name: 'ประกัน MRTA',                    badge: 'badge-mrta',  cls: 'mrta',  orig: 60232,   minPayment: 300   }
+  HOME:  { name: 'สินเชื่อเคหะหลัก', badge: 'badge-home', minPayment: 10500 },
+  EXTRA: { name: 'สินเชื่ออเนกประสงค์', badge: 'badge-extra', minPayment: 800 },
+  MRTA:  { name: 'ประกันคุ้มครองวงเงิน', badge: 'badge-home', minPayment: 300 }
 };
 
 let accountsData = [];
 let paymentsCache = [];
-let doughnutChartInstance = null;
-let lineChartInstance = null;
+let chartInstance = null;
 
-// =============================================
-//  UTILS
-// =============================================
+// --- SIMULATOR STATE ---
+let currentSimBaseBalance = 0;
+let currentSimBaseRate = 3.09;
+let currentSimBasePayment = 10500;
+
+// --- UTILS ---
 const fmt = n => n == null ? '-' : Number(n).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtDate = d => {
   if (!d) return '-';
@@ -567,70 +651,76 @@ const fmtDate = d => {
   return dt.toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'numeric'});
 };
 
-// ฟังก์ชันคำนวณจำนวนงวดที่เหลือ (NPER Formula)
-const getRemainingPeriods = (balance, annualRate, monthlyPayment) => {
-  if (balance <= 0) return 0;
-  if (!monthlyPayment || monthlyPayment <= 0) return Infinity;
-  
-  const r = annualRate / 100 / 12;
-  if (r === 0) return Math.ceil(balance / monthlyPayment);
-  
-  const interestPart = r * balance;
-  if (interestPart >= monthlyPayment) return Infinity; // จ่ายไม่พอตัดดอกเบี้ย
-  
-  const n = -Math.log(1 - (interestPart / monthlyPayment)) / Math.log(1 + r);
-  return Math.ceil(n);
-};
-
-// ฟังก์ชันแปลงจำนวนงวดเป็น ปี/เดือน ให้อ่านง่าย
-const formatPeriods = (months) => {
-  if (months === Infinity) return "จ่ายไม่พอดอกเบี้ย";
-  if (months === 0) return "หมดแล้ว 🎉";
-  const y = Math.floor(months / 12);
-  const m = months % 12;
-  let text = `${months} งวด`;
-  if (y > 0) {
-    text += ` <span style="font-size:12px; color:var(--muted); font-weight:400; margin-left:4px;">(~${y} ปี ${m > 0 ? m + ' เดือน' : ''})</span>`;
-  }
-  return text;
-};
-
-function toast(msg, type='') {
+function showToast(msg, type='info') {
   const w = document.getElementById('toastWrap');
   const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.innerHTML = (type === 'success' ? '✅ ' : type === 'error' ? '⚠️ ' : '') + msg;
+  let icon = type === 'success' ? '<i class="ph ph-check-circle" style="color:var(--success); font-size:24px;"></i>' : 
+             type === 'error' ? '<i class="ph ph-warning-circle" style="color:var(--danger); font-size:24px;"></i>' : 
+             '<i class="ph ph-info" style="color:var(--accent-gold); font-size:24px;"></i>';
+  t.className = 'toast';
+  t.innerHTML = `${icon} <span style="font-weight:500;">${msg}</span>`;
   w.appendChild(t);
   setTimeout(() => {
-      t.style.opacity = '0';
-      t.style.transform = 'translateY(20px)';
-      t.style.transition = 'all 0.3s ease';
+      t.style.animation = 'slideInRight 0.3s forwards reverse';
       setTimeout(() => t.remove(), 300);
-  }, 3500);
+  }, 4000);
 }
 
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  event.target.classList.add('active');
+// --- NAVIGATION ---
+const pageTitles = {
+  'dashboard': 'ภาพรวมสินทรัพย์ (Dashboard)',
+  'add': 'บันทึกรายการชำระเงิน',
+  'history': 'ประวัติการทำรายการ',
+  'amortize': 'ตารางประมาณการผ่อน',
+  'settings': 'การตั้งค่าระบบ'
+};
 
-  if (name === 'dashboard') loadDashboard();
-  if (name === 'history')   loadHistory();
-  if (name === 'amortize')  loadAmortize();
-  if (name === 'settings')  loadSettingsPage();
-  if (name === 'add')       refreshAddForm();
+function navTo(pageId) {
+  // Update UI active states
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .mob-nav-item').forEach(n => n.classList.remove('active'));
+  
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.getElementById('pageTitle').innerText = pageTitles[pageId];
+  
+  // Find clicked tab and set active
+  const eventTarget = event ? event.currentTarget : null;
+  if (eventTarget) eventTarget.classList.add('active');
+  
+  // Logic per page
+  if (pageId === 'dashboard') loadDashboard();
+  if (pageId === 'add') refreshAddForm();
+  if (pageId === 'history') loadHistory();
+  if (pageId === 'amortize') loadAmortize();
+  if (pageId === 'settings') document.getElementById('set_gasUrl').value = GAS_URL;
+}
+
+// --- THEME TOGGLE ---
+function toggleTheme() {
+  const body = document.body;
+  const icon = document.getElementById('themeIcon');
+  if (body.getAttribute('data-theme') === 'dark') {
+    body.setAttribute('data-theme', 'light');
+    icon.className = 'ph ph-sun';
+  } else {
+    body.setAttribute('data-theme', 'dark');
+    icon.className = 'ph ph-moon';
+  }
+  // Re-render chart to match theme colors if on dashboard
+  if(document.getElementById('page-dashboard').classList.contains('active') && accountsData.length > 0) {
+      loadDashboard(); 
+  }
 }
 
 function callGAS(params) {
   return new Promise((resolve, reject) => {
-    if (!GAS_URL) { reject(new Error('ยังไม่ได้ตั้งค่า GAS URL')); return; }
+    if (!GAS_URL) { reject(new Error('กรุณาตั้งค่าเชื่อมต่อ GAS URL ในเมนูตั้งค่า')); return; }
 
     const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error('หมดเวลา 20 วินาที — ตรวจสอบว่า Deploy ตั้ง "Anyone" แล้ว'));
-    }, 20000);
+      reject(new Error('หมดเวลาเชื่อมต่อ ตรวจสอบ URL หรือสิทธิ์การเข้าถึง'));
+    }, 15000);
 
     function cleanup() {
       clearTimeout(timer);
@@ -641,7 +731,7 @@ function callGAS(params) {
 
     window[cbName] = function(data) {
       cleanup();
-      if (!data.ok) reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
+      if (!data.ok) reject(new Error(data.error || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์'));
       else resolve(data);
     };
 
@@ -650,37 +740,36 @@ function callGAS(params) {
     const script = document.createElement('script');
     script.id  = cbName;
     script.src = url;
-    script.onerror = () => { cleanup(); reject(new Error('โหลด GAS ไม่สำเร็จ — ตรวจสอบ URL และสิทธิ์การเข้าถึง')); };
+    script.onerror = () => { cleanup(); reject(new Error('โหลด Script ไม่สำเร็จ')); };
     document.head.appendChild(script);
   });
 }
 
-// =============================================
-//  DASHBOARD
-// =============================================
+function setConnectionStatus(isConnected, msg = '') {
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connectionStatus');
+  if(isConnected) {
+    dot.style.background = 'var(--success)';
+    dot.style.boxShadow = '0 0 8px var(--success)';
+    txt.innerText = 'เชื่อมต่อแล้ว';
+  } else {
+    dot.style.background = 'var(--danger)';
+    dot.style.boxShadow = '0 0 8px var(--danger)';
+    txt.innerText = msg || 'ไม่ได้เชื่อมต่อ';
+  }
+}
+
 async function loadDashboard() {
   const el = document.getElementById('summaryArea');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div><br>กำลังโหลดข้อมูล...</div>';
-
-  if (!GAS_URL) {
-    el.innerHTML = `
-      <div class="info-box">
-        <span style="font-size:20px;">⚙️</span>
-        <div>ยังไม่ได้ตั้งค่า GAS URL — ไปที่แท็บ <strong>"ตั้งค่า"</strong> เพื่อเชื่อมต่อกับ Google Sheet</div>
-      </div>
-      <div class="card">
-        <div class="card-title">ข้อมูลเริ่มต้น</div>
-        ${renderAccountCards([
-          {id:'HOME',  name:'สินเชื่อตัวบ้าน',                    originalBalance:2153000, balance:2153000, rate:3.09},
-          {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม',               originalBalance:120000,  balance:120000,  rate:3.09},
-          {id:'MRTA',  name:'ประกันชีวิตคุ้มครองสินเชื่อบ้าน (MRTA)', originalBalance:60232, balance:60232,  rate:3.09}
-        ])}
-      </div>`;
-    return;
+  if(!GAS_URL) {
+      el.innerHTML = `<div class="glass-card" style="text-align:center;"><i class="ph ph-plugs" style="font-size:48px; color:var(--text-muted); margin-bottom:16px;"></i><p>ยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาไปที่เมนูการตั้งค่า</p></div>`;
+      setConnectionStatus(false);
+      return;
   }
+  
+  if(accountsData.length === 0) el.innerHTML = '<div class="loading-state"><div class="loader"></div>ซิงค์ข้อมูลล่าสุด...</div>';
 
   try {
-    // โหลดข้อมูลภาพรวม และ ประวัติไปพร้อมๆ กันเพื่อนำมาวาดกราฟ
     const [summaryData, paymentsData] = await Promise.all([
         callGAS({ action: 'getSummary' }),
         callGAS({ action: 'getPayments' })
@@ -688,764 +777,622 @@ async function loadDashboard() {
 
     accountsData = summaryData.accounts;
     const s = summaryData.summary;
-    const payments = paymentsData.payments || [];
-    paymentsCache = payments;
+    paymentsCache = paymentsData.payments || [];
+    setConnectionStatus(true);
+
+    const progressPct = Math.min(s.progressPercent, 100).toFixed(1);
+    
+    // --- VIP TIER LOGIC ---
+    let vipTier = "Classic";
+    let vipColor = "#94A3B8"; // Silver/Grey
+    let vipIcon = "ph-star";
+    if(s.progressPercent >= 75) { vipTier = "Diamond"; vipColor = "#00FFFF"; vipIcon = "ph-diamond"; }
+    else if(s.progressPercent >= 50) { vipTier = "Platinum"; vipColor = "#E5E4E2"; vipIcon = "ph-medal"; }
+    else if(s.progressPercent >= 25) { vipTier = "Gold"; vipColor = "#D4AF37"; vipIcon = "ph-crown"; }
+    else if(s.progressPercent >= 10) { vipTier = "Silver"; vipColor = "#C0C0C0"; vipIcon = "ph-star"; }
+
+    // --- SIMULATOR DATA ---
+    currentSimBaseBalance = s.totalRemaining;
+    const homeAcc = accountsData.find(a => a.id === 'HOME') || accountsData[0];
+    if(homeAcc) {
+        currentSimBaseRate = homeAcc.rate || 3.09;
+        currentSimBasePayment = ACCOUNTS_INFO[homeAcc.id]?.minPayment || 10500;
+    }
+    
+    // Gimmick: House filling calculation based on principal paid relative to original
+    let houseFillHeight = 0;
+    if(s.totalOriginal > 0) {
+        houseFillHeight = (s.totalPrincipal / s.totalOriginal) * 100;
+    }
 
     el.innerHTML = `
-      <div class="summary-grid">
-        <div class="metric">
-          <div class="metric-icon">🏦</div>
-          <div class="metric-label">ยอดกู้รวมทั้งหมด</div>
-          <div class="metric-value">${fmt(s.totalOriginal)}</div>
-          <div class="metric-sub">บาท</div>
+      <!-- Top Metrics -->
+      <div class="grid-cols-3" style="margin-bottom: 24px;">
+        <div class="metric-card">
+          <div class="metric-label">ยอดหนี้คงเหลือรวม</div>
+          <div class="metric-value number-font">${fmt(s.totalRemaining)}</div>
+          <div class="metric-sub">จากเริ่มต้น ${fmt(s.totalOriginal)} บาท</div>
         </div>
-        <div class="metric">
-          <div class="metric-icon">📉</div>
-          <div class="metric-label">ยอดคงเหลือรวม</div>
-          <div class="metric-value red">${fmt(s.totalRemaining)}</div>
-          <div class="metric-sub">บาท</div>
+        <div class="metric-card">
+          <div class="metric-label">ดอกเบี้ยจ่ายสะสม</div>
+          <div class="metric-value number-font text-gold">${fmt(s.totalInterest)}</div>
+          <div class="metric-sub">ลดหย่อนภาษีได้ตามจริง</div>
         </div>
-        <div class="metric">
-          <div class="metric-icon">✅</div>
-          <div class="metric-label">ชำระแล้วรวม</div>
-          <div class="metric-value green">${fmt(s.totalPaid)}</div>
-          <div class="metric-sub">${s.paymentCount} งวด</div>
-        </div>
-        <div class="metric">
-          <div class="metric-icon">🔥</div>
-          <div class="metric-label">ดอกเบี้ยที่จ่ายไปแล้ว</div>
-          <div class="metric-value gold">${fmt(s.totalInterest)}</div>
-          <div class="metric-sub">บาท</div>
-        </div>
-        <div class="metric">
-          <div class="metric-icon">💳</div>
-          <div class="metric-label">ยอดชำระขั้นต่ำรวม/งวด</div>
-          <div class="metric-value" style="color:var(--blue);">${fmt(10500+800+300)}</div>
-          <div class="metric-sub">บาท (3 บัญชีรวมกัน)</div>
+        <div class="metric-card">
+          <div class="metric-label">เงินต้นที่ลดไปแล้ว</div>
+          <div class="metric-value number-font text-success">${fmt(s.totalPrincipal)}</div>
+          <div class="metric-sub">คิดเป็น ${progressPct}% ของยอดกู้</div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">ความคืบหน้ารวม</div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text); margin-bottom:12px; font-weight: 500;">
-          <span>ชำระแล้ว <span style="color:var(--green);">${s.progressPercent.toFixed(2)}%</span></span>
-          <span>เหลือ <span style="color:var(--muted);">${(100 - s.progressPercent).toFixed(2)}%</span></span>
+      <!-- NEW: Extra Pay Simulator & VIP Status -->
+      <div class="glass-card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(212, 175, 55, 0.05) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+           <div>
+              <h3 class="section-title" style="margin-bottom: 8px; margin-top: 0;"><i class="ph ph-magic-wand"></i> จำลองการโปะประหยัดดอกเบี้ย</h3>
+              <p style="font-size: 13px; color: var(--text-secondary);">เลื่อนแถบด้านล่างเพื่อดูว่า หากคุณโปะเพิ่มทุกเดือน จะประหยัดเงินและร่นเวลาได้เท่าไหร่</p>
+           </div>
+           <div style="text-align: right; background: rgba(0,0,0,0.2); padding: 8px 16px; border-radius: 100px; border: 1px solid ${vipColor}40;">
+              <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">สถานะความสำเร็จของคุณ</div>
+              <div style="color: ${vipColor}; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                 <i class="ph ${vipIcon}"></i> ${vipTier} Member
+              </div>
+           </div>
         </div>
-        <div class="progress-wrap">
-          <div class="progress-bar" style="width:${Math.min(s.progressPercent, 100)}%"></div>
-        </div>
-        <div style="font-size:13px; color:var(--muted); margin-top:14px;">
-          ลดเงินต้นไปแล้ว: <strong style="color:var(--text-dark); font-size:14px;">${fmt(s.totalPrincipal)} บาท</strong>
+        
+        <div style="margin-top: 24px; padding: 24px; border-radius: var(--radius-md); background: var(--bg-surface-elevated); border: 1px solid var(--border-color); box-shadow: inset 0 2px 10px rgba(0,0,0,0.15);">
+           <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: flex-end;">
+              <span style="font-weight: 500;">เงินโปะเพิ่มต่อเดือน</span>
+              <span class="number-font text-gold" style="font-size: 24px; font-weight: 700;">+<span id="simValDisplay">0</span> <span style="font-size:14px; color:var(--text-secondary); font-weight:400;">บาท</span></span>
+           </div>
+           <input type="range" id="simSlider" min="0" max="50000" step="500" value="0" style="width: 100%; cursor: pointer;" oninput="updateSimulator()">
+           
+           <div class="grid-cols-2" style="margin-top: 24px; gap: 16px;">
+              <div style="background: var(--bg-base); padding: 16px; border-radius: var(--radius-sm); border: 1px dashed var(--success);">
+                 <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">ประหยัดดอกเบี้ยรวมได้ประมาณ</div>
+                 <div class="number-font text-success" style="font-size: 24px; font-weight: 600;"><span id="simSaveInt">0</span> บาท</div>
+              </div>
+              <div style="background: var(--bg-base); padding: 16px; border-radius: var(--radius-sm); border: 1px dashed var(--info);">
+                 <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">ร่นระยะเวลาผ่อนไปได้ถึง</div>
+                 <div class="number-font" style="color: var(--info); font-size: 24px; font-weight: 600;"><span id="simSaveTime">0</span> เดือน</div>
+              </div>
+           </div>
         </div>
       </div>
 
-      <!-- ส่วนของ Data Visualization และ สรุปรายปี -->
-      <div class="dashboard-grid-2">
-        <div class="card" style="margin-bottom:0;">
-          <div class="card-title">สัดส่วนที่จ่ายไปแล้ว</div>
-          <div style="position: relative; height: 240px; width: 100%;">
-            <canvas id="doughnutChart"></canvas>
+      <div class="grid-cols-2">
+        <!-- Visualizer & Chart -->
+        <div class="glass-card">
+          <h3 class="section-title"><i class="ph ph-house-line"></i> กรรมสิทธิ์ในบ้านของคุณ</h3>
+          <div class="visualizer-container">
+            <div class="house-svg-wrap">
+              <svg class="house-svg" viewBox="0 0 256 256">
+                <path d="M240,115.54,136.21,26.47a16,16,0,0,0-20.89-.25L15.65,115.82a8,8,0,0,0,10.61,12.18l21.74-18.9V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V109.11L229.47,128A8,8,0,0,0,240,115.54ZM192,208H64V95.2L125.76,41.42l66.24,56.84Z"/>
+              </svg>
+              <!-- The fill element -->
+              <div class="house-fill" style="height: ${houseFillHeight}%"></div>
+            </div>
+            <div style="flex:1; text-align:center;">
+              <div style="font-size: 36px; font-weight:700; color:var(--accent-gold);" class="number-font">${progressPct}%</div>
+              <div style="color:var(--text-secondary); font-size:14px;">เป็นของคุณแล้ว</div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 24px; position:relative; height:200px;">
+             <canvas id="mainChart"></canvas>
           </div>
         </div>
         
-        <div class="card" style="margin-bottom:0;">
-          <div class="card-title">📝 สรุปดอกเบี้ยจ่ายรายปี (ลดหย่อนภาษี)</div>
-          <div id="yearlyReportArea"></div>
+        <!-- Accounts Breakdown -->
+        <div class="glass-card">
+           <h3 class="section-title"><i class="ph ph-wallet"></i> รายละเอียดบัญชี</h3>
+           <div style="display:flex; flex-direction:column; gap:16px;">
+             ${accountsData.map(a => renderAccountMiniCard(a)).join('')}
+           </div>
         </div>
       </div>
+    `;
 
-      <div class="card">
-        <div class="card-title">📉 แนวโน้มยอดหนี้คงเหลือ</div>
-        <div style="position: relative; height: 300px; width: 100%;">
-          <canvas id="lineChart"></canvas>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">รายละเอียดแต่ละบัญชี</div>
-        ${renderAccountCards(summaryData.accounts)}
-      </div>`;
-
-    document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
-
-    // เรนเดอร์กราฟและรายงานสรุปหลังจากสร้าง DOM เสร็จ
-    renderCharts(s, payments);
-    renderYearlyReport(payments);
+    renderChart(s);
+    setTimeout(updateSimulator, 100);
 
   } catch(e) {
-    el.innerHTML = `
-      <div class="info-box info-box-danger">
-        <span style="font-size:20px;">❌</span>
-        <div>
-            <strong>เชื่อมต่อไม่สำเร็จ</strong><br>
-            <span style="font-size:13px; opacity:0.9;">${e.message}</span>
-        </div>
-      </div>
-      <div class="info-box" style="background:var(--card); border-color:var(--border); color:var(--text);">
-        <div>
-            <strong>💡 วิธีแก้ปัญหา (ทำตามลำดับ):</strong><br><br>
-            1. เปิดลิงก์นี้ในหน้าต่างใหม่ 1 ครั้ง แล้วกด Allow หรือ Sign in Google:<br>
-            <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--blue); word-break:break-all; font-weight:500; display:inline-block; margin-top:4px;">คลิกที่นี่เพื่อยืนยันสิทธิ์ Google</a><br><br>
-            2. กลับมาที่หน้านี้แล้วกดรีเฟรชเบราว์เซอร์<br>
-            3. หากยังไม่ได้ ใน Apps Script ให้กด Deploy ใหม่ โดยเลือก <strong>Who has access: Anyone</strong>
-        </div>
-      </div>`;
-    document.getElementById('connectionStatus').textContent = 'ไม่ได้เชื่อมต่อ';
+    el.innerHTML = `<div class="glass-card"><p style="color:var(--danger);"><i class="ph ph-warning-circle"></i> ${e.message}</p></div>`;
+    setConnectionStatus(false, 'เชื่อมต่อล้มเหลว');
   }
 }
 
-// =============================================
-//  CHARTS & REPORT LOGIC
-// =============================================
-function renderCharts(summary, payments) {
-    // 1. Doughnut Chart (สัดส่วนเงินต้น vs ดอกเบี้ย)
-    const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
-    if (doughnutChartInstance) doughnutChartInstance.destroy();
-    
-    const hasData = summary.totalPrincipal > 0 || summary.totalInterest > 0;
-    
-    doughnutChartInstance = new Chart(ctxDoughnut, {
-        type: 'doughnut',
-        data: {
-            labels: hasData ? ['ตัดเงินต้น', 'เสียดอกเบี้ย'] : ['ยังไม่มีการชำระ'],
-            datasets: [{
-                data: hasData ? [summary.totalPrincipal, summary.totalInterest] : [1],
-                backgroundColor: hasData ? ['#10B981', '#F59E0B'] : ['#E2E8F0'],
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: { position: 'bottom', labels: { font: { family: "'IBM Plex Sans Thai', sans-serif" } } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            if (!hasData) return ' ยังไม่มีข้อมูล';
-                            const val = context.raw || 0;
-                            const total = summary.totalPrincipal + summary.totalInterest;
-                            const percent = ((val / total) * 100).toFixed(1);
-                            return ` ${fmt(val)} บาท (${percent}%)`;
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    // 2. Line Chart (แนวโน้มยอดหนี้คงเหลือ)
-    const ctxLine = document.getElementById('lineChart').getContext('2d');
-    if (lineChartInstance) lineChartInstance.destroy();
-
-    // จัดเรียงวันที่จากอดีต -> ปัจจุบัน
-    const sorted = [...payments].sort((a,b) => new Date(a.date) - new Date(b.date));
-    let runningBalance = summary.totalOriginal;
-    const labels = ['เริ่มต้น'];
-    const balances = [runningBalance];
-
-    sorted.forEach(p => {
-        runningBalance -= p.principal; // หักลบเงินต้นที่จ่ายในแต่ละงวดออกจากยอดหนี้รวม
-        labels.push(fmtDate(p.date));
-        balances.push(Math.max(0, runningBalance));
-    });
-
-    lineChartInstance = new Chart(ctxLine, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'ยอดหนี้คงเหลือรวม (บาท)',
-                data: balances,
-                borderColor: '#0284C7',
-                backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointRadius: 2,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-                x: { ticks: { font: { family: "'IBM Plex Sans Thai', sans-serif" } }, grid: { display: false } },
-                y: { 
-                    beginAtZero: false, 
-                    ticks: { 
-                        font: { family: "'IBM Plex Sans Thai', sans-serif" },
-                        callback: function(value) { return value >= 10000 ? (value/10000).toLocaleString() + ' หมื่น' : value; } 
-                    } 
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                    titleFont: { family: "'IBM Plex Sans Thai', sans-serif" },
-                    bodyFont: { family: "'IBM Plex Sans Thai', sans-serif" },
-                    callbacks: {
-                        label: function(context) { return `ยอดหนี้เหลือ: ${fmt(context.raw)} บาท`; }
-                    }
-                }
-            }
-        }
-    });
-}
-
-function renderYearlyReport(payments) {
-    const el = document.getElementById('yearlyReportArea');
-    if (!payments || payments.length === 0) {
-        el.innerHTML = '<div class="empty-state" style="padding:40px 20px; border:none; background:transparent;">ยังไม่มีข้อมูลการชำระเงิน</div>';
-        return;
-    }
-
-    // จัดกลุ่มรวมยอดดอกเบี้ยตามปี ค.ศ.
-    const yearly = {};
-    payments.forEach(p => {
-        const y = new Date(p.date).getFullYear();
-        if(!yearly[y]) yearly[y] = { interest: 0, principal: 0 };
-        yearly[y].interest += p.interest;
-        yearly[y].principal += p.principal;
-    });
-
-    const years = Object.keys(yearly).sort((a,b) => b - a); // เรียงจากปีล่าสุดลงไป
-    const currentYear = new Date().getFullYear();
-
-    let html = '<div style="overflow-x:auto;">';
-    html += '<table class="yearly-table">';
-    html += '<thead><tr><th>ปี (ค.ศ.)</th><th>ดอกเบี้ยที่จ่าย (บาท)</th></tr></thead><tbody>';
-    
-    years.forEach(y => {
-        const isCurrent = y == currentYear;
-        const trClass = isCurrent ? 'class="current-year"' : '';
-        const tag = isCurrent ? ' <span style="font-size:11px; font-weight:500; color:var(--blue); background:#fff; padding:2px 6px; border-radius:10px; border:1px solid var(--sky);">ปีปัจจุบัน</span>' : '';
-        html += `<tr ${trClass}>
-            <td>${y}${tag}</td>
-            <td style="color:var(--gold);">${fmt(yearly[y].interest)}</td>
-        </tr>`;
-    });
-    
-    html += '</tbody></table></div>';
-    html += `<div style="margin-top:14px; font-size:12px; color:var(--muted); display:flex; gap:6px; align-items:flex-start;">
-        <span style="font-size:16px;">💡</span>
-        <span>ยอดดอกเบี้ยจ่ายสินเชื่อที่อยู่อาศัย สามารถนำไปใช้ <strong>ลดหย่อนภาษีได้ตามจริง สูงสุดไม่เกิน 100,000 บาท/ปี</strong> (ตามเงื่อนไขของกรมสรรพากร)</span>
-    </div>`;
-    
-    el.innerHTML = html;
-}
-
-function renderAccountCards(accounts) {
-  return `<div class="account-cards">` + accounts.map(a => {
+function renderAccountMiniCard(a) {
     const info = ACCOUNTS_INFO[a.id] || {};
-    const pct  = a.originalBalance > 0 ? ((a.originalBalance - a.balance) / a.originalBalance * 100) : 0;
+    const pct = a.originalBalance > 0 ? ((a.originalBalance - a.balance) / a.originalBalance * 100) : 0;
     
-    // คำนวณงวดคงเหลือจากยอดปัจจุบัน
-    const minPay = info.minPayment || 0;
-    const remainPeriods = getRemainingPeriods(a.balance, a.rate, minPay);
-    const periodText = formatPeriods(remainPeriods);
-
     return `
-      <div class="acc-card ${info.cls || ''}">
-        <div class="acc-name">${a.name}</div>
-        <div class="acc-balance">${fmt(a.balance)}</div>
-        <div class="acc-orig">ยอดเริ่มต้น: ${fmt(a.originalBalance)} บาท</div>
-        <div class="acc-rate">อัตราดอกเบี้ย <strong>${a.rate}%</strong> ต่อปี</div>
-        <div style="margin-top:20px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <span style="font-size:13px; color:var(--muted);">ชำระขั้นต่ำ</span>
-          <span style="font-size:15px; font-weight:600; font-family:'IBM Plex Mono',monospace; color:var(--text-dark); background:var(--bg); border: 1px solid var(--border); padding:6px 14px; border-radius:100px;">${fmt(minPay)} <span style="font-size:12px; color:var(--muted); font-weight:400; font-family:'IBM Plex Sans Thai', sans-serif;">บาท/งวด</span></span>
+    <div style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-base);">
+        <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+            <strong style="font-size:15px;">${a.name}</strong>
+            <span class="number-font" style="font-weight:600; color:var(--accent-gold);">${a.rate}% ต่อปี</span>
         </div>
-        
-        <div style="margin-top:12px; background: var(--sky2); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px dashed var(--sky); display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size:13px; color:var(--blue-hover); font-weight:500;"><span style="font-size:16px; margin-right:6px;">⏱️</span>หมดในอีก (ถ้าจ่ายขั้นต่ำ)</span>
-          <strong style="font-size:14px; color:var(--blue); text-align:right;">${periodText}</strong>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 12px;">
+            <div style="font-size:13px; color:var(--text-secondary);">ยอดคงเหลือ</div>
+            <div class="number-font" style="font-size:20px; font-weight:600;">${fmt(a.balance)}</div>
         </div>
-
-        <div class="acc-mini-prog" style="margin-top:16px;">
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:8px;">
-            <span>ลดไปแล้ว ${pct.toFixed(1)}%</span>
-          </div>
-          <div class="progress-wrap" style="height:6px; margin: 0;">
-            <div class="progress-bar" style="width:${Math.min(pct,100)}%"></div>
-          </div>
+        <!-- Mini Progress -->
+        <div style="height: 6px; background:var(--bg-surface-elevated); border-radius:10px; overflow:hidden;">
+            <div style="height:100%; width:${pct}%; background: linear-gradient(90deg, var(--accent-gold), #8A6A1C);"></div>
         </div>
-      </div>`;
-  }).join('') + `</div>`;
+    </div>`;
 }
 
-// =============================================
-//  ADD PAYMENT FORM
-// =============================================
+function renderChart(s) {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#94A3B8' : '#475569';
+    const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['ส่วนประกอบการชำระ'],
+            datasets: [
+                {
+                    label: 'เงินต้นที่ลด',
+                    data: [s.totalPrincipal],
+                    backgroundColor: '#10B981',
+                    borderRadius: 4,
+                    barPercentage: 0.5
+                },
+                {
+                    label: 'ดอกเบี้ยจ่าย',
+                    data: [s.totalInterest],
+                    backgroundColor: '#D4AF37',
+                    borderRadius: 4,
+                    barPercentage: 0.5
+                }
+            ]
+        },
+        options: {
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: textColor, font: {family: "'Prompt', sans-serif"} } },
+                tooltip: { titleFont: {family: "'Prompt'"}, bodyFont: {family: "'Prompt'"}, callbacks: { label: c => ` ${fmt(c.raw)} บาท` } }
+            },
+            scales: {
+                x: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor, font: {family: "'Space Grotesk'"} } },
+                y: { stacked: true, grid: { display: false }, ticks: { color: textColor, font: {family: "'Prompt'"} } }
+            }
+        }
+    });
+}
+
 async function refreshAddForm() {
   const sel = document.getElementById('f_account');
-  sel.innerHTML = '<option value="">กำลังโหลดข้อมูลบัญชี...</option>';
-  sel.disabled = true;
-
-  const today = new Date().toISOString().split('T')[0];
-  if (!document.getElementById('f_date').value) {
-      document.getElementById('f_date').value = today;
+  sel.innerHTML = '<option value="">กำลังโหลด...</option>';
+  
+  if(accountsData.length === 0 && GAS_URL) {
+      try {
+          const res = await callGAS({action: 'getAccounts'});
+          accountsData = res.accounts || [];
+      } catch(e) {}
   }
 
-  try {
-    // ใช้ข้อมูลจากที่โหลดมาแล้ว (ถ้ามี) เพื่อความรวดเร็วไม่ต้องรอเชื่อมต่อใหม่
-    let accounts = accountsData; 
-    if (!accounts || accounts.length === 0) {
-        const data = await callGAS({ action: 'getAccounts' });
-        accounts = data.accounts || [];
-        accountsData = accounts;
-    }
-    
-    sel.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
-    sel.disabled = false;
-
-    if (accounts.length === 0) {
-        throw new Error("ไม่มีข้อมูลบัญชีในระบบ");
-    }
-
-    accounts.forEach(a => {
-      if (!a.id) return; // ข้ามบรรทัดที่ว่าง
+  sel.innerHTML = '<option value="">-- เลือกบัญชีที่ต้องการชำระ --</option>';
+  accountsData.forEach(a => {
+      if(!a.id) return;
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = a.name + ' (คงเหลือ ' + fmt(a.balance) + ')';
+      opt.textContent = `${a.name} (คงเหลือ ${fmt(a.balance)})`;
       opt.dataset.balance = a.balance;
       opt.dataset.rate = a.rate;
       sel.appendChild(opt);
-    });
-  } catch(e) {
-    sel.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
-    sel.disabled = false;
-    
-    // ข้อมูลจำลองกรณีเชื่อมต่อ Google Sheets ไม่สำเร็จ
-    [
-      {id:'HOME',  name:'สินเชื่อตัวบ้าน (ข้อมูลจำลอง)',       balance:2153000, rate:3.09},
-      {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม (ข้อมูลจำลอง)',   balance:120000,  rate:3.09},
-      {id:'MRTA',  name:'ประกัน MRTA (ข้อมูลจำลอง)',            balance:60232,   rate:3.09}
-    ].forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.id; opt.textContent = a.name;
-      opt.dataset.balance = a.balance; opt.dataset.rate = a.rate;
-      sel.appendChild(opt);
-    });
-  }
-
-  ['hist_account', 'amo_account'].forEach(id => {
-    const s = document.getElementById(id);
-    if (!s) return;
-    s.innerHTML = '<option value="">ทุกบัญชี</option>';
-    Array.from(sel.options).slice(1).forEach(o => {
-      const no = document.createElement('option');
-      no.value = o.value; no.textContent = o.dataset ? o.textContent.split(' (')[0] : o.textContent;
-      s.appendChild(no);
-    });
   });
+  
+  if(!document.getElementById('f_date').value) {
+      document.getElementById('f_date').value = new Date().toISOString().split('T')[0];
+  }
 }
 
 function onAccountChange() {
-  const sel   = document.getElementById('f_account');
-  const opt   = sel.options[sel.selectedIndex];
-  const hint  = document.getElementById('minPayHint');
-  const dateInput = document.getElementById('f_date');
+  const sel = document.getElementById('f_account');
+  const opt = sel.options[sel.selectedIndex];
+  const hint = document.getElementById('minPayHint');
   
-  if (!opt || !opt.value) { hint.style.display = 'none'; return; }
+  if(!opt || !opt.value) { hint.style.display = 'none'; return; }
   
-  const accountId = opt.value;
-  const info  = ACCOUNTS_INFO[accountId];
-  
-  // ตรวจสอบว่าเคยมีประวัติชำระหรือยัง ถ้ายังให้ตั้งค่าเริ่มต้นเป็น 25 มิ.ย. 2026 (งวดแรก)
-  const accPayments = paymentsCache.filter(p => p.accountId === accountId);
-  if (accPayments.length === 0) {
-      dateInput.value = '2026-06-25'; 
+  const info = ACCOUNTS_INFO[opt.value];
+  if(info && info.minPayment) {
+      document.getElementById('minPayValue').textContent = fmt(info.minPayment);
+      hint.style.display = 'block';
   } else {
-      // ถ้าเคยจ่ายไปแล้ว ให้กลับมาใช้วันที่ปัจจุบันตามปกติ
-      dateInput.value = new Date().toISOString().split('T')[0];
-  }
-
-  if (info && info.minPayment) {
-    document.getElementById('minPayValue').textContent = fmt(info.minPayment);
-    hint.style.display = 'flex';
-  } else {
-    hint.style.display = 'none';
+      hint.style.display = 'none';
   }
   calcFields();
 }
 
 function fillMinPay() {
-  const sel  = document.getElementById('f_account');
-  const opt  = sel.options[sel.selectedIndex];
-  if (!opt || !opt.value) return;
-  const info = ACCOUNTS_INFO[opt.value];
-  if (info && info.minPayment) {
-    document.getElementById('f_total').value = info.minPayment;
-    calcFields();
+  const sel = document.getElementById('f_account');
+  const val = sel.value;
+  if(val && ACCOUNTS_INFO[val]) {
+      document.getElementById('f_total').value = ACCOUNTS_INFO[val].minPayment;
+      calcFields();
   }
 }
 
 function calcFields() {
-  const sel   = document.getElementById('f_account');
-  const opt   = sel.options[sel.selectedIndex];
-  if (!opt || !opt.dataset.balance) return;
+  const opt = document.getElementById('f_account').options[document.getElementById('f_account').selectedIndex];
+  if(!opt || !opt.dataset.balance) return;
 
-  const balance  = parseFloat(opt.dataset.balance) || 0;
-  const rate     = parseFloat(opt.dataset.rate) || 3.09;
-  const total    = parseFloat(document.getElementById('f_total').value) || 0;
+  const balance = parseFloat(opt.dataset.balance) || 0;
+  const rate = parseFloat(opt.dataset.rate) || 0;
+  const total = parseFloat(document.getElementById('f_total').value) || 0;
   
-  // === การคำนวณดอกเบี้ยแบบรายวัน (Actual/365) ===
-  const accountId = opt.value;
-  // 1. หาวันที่ชำระล่าสุดของบัญชีนี้จากประวัติ
-  const accPayments = paymentsCache.filter(p => p.accountId === accountId).sort((a, b) => new Date(b.date) - new Date(a.date));
-  const lastPaymentDate = accPayments.length > 0 ? new Date(accPayments[0].date) : new Date('2026-05-16'); // ใช้วันเริ่มสัญญาหากยังไม่เคยจ่าย
+  // Find last payment date for this account to calculate exact days
+  const accId = document.getElementById('f_account').value;
+  const prevPays = paymentsCache.filter(p => p.accountId === accId).sort((a,b) => new Date(b.date) - new Date(a.date));
+  const lastDate = prevPays.length > 0 ? new Date(prevPays[0].date) : new Date(new Date().setMonth(new Date().getMonth() - 1)); // rough fallback
+  const currDate = new Date(document.getElementById('f_date').value);
   
-  // 2. วันที่ชำระปัจจุบันที่กรอกในฟอร์ม
-  const currentPayDate = new Date(document.getElementById('f_date').value);
+  let days = Math.round((currDate - lastDate) / (1000 * 60 * 60 * 24));
+  if(days < 0) days = 0;
   
-  // 3. คำนวณระยะห่าง (จำนวนวัน)
-  let days = Math.round((currentPayDate - lastPaymentDate) / (1000 * 60 * 60 * 24));
-  if (days < 0) days = 0; // ป้องกันวันติดลบหากกรอกวันที่ย้อนหลัง
+  const interest = parseFloat((balance * (rate/100) * (days/365)).toFixed(2));
+  const principal = parseFloat((total - interest).toFixed(2));
   
-  // 4. คำนวณดอกเบี้ยแบบรายวัน: เงินต้น * (ดอกเบี้ย/100) * (จำนวนวัน/365)
-  const interest = parseFloat((balance * (rate / 100) * (days / 365)).toFixed(2));
-  const principal= parseFloat((total - interest).toFixed(2));
-  const remaining= parseFloat((balance - Math.max(0, principal)).toFixed(2));
-
-  document.getElementById('f_interest').value  = interest > 0 ? interest : '';
-  document.getElementById('f_principal').value = principal > 0 ? principal.toFixed(2) : '';
-  document.getElementById('f_remaining').value = remaining > 0 ? fmt(remaining) : '';
+  document.getElementById('f_interest').value = interest > 0 ? interest : '';
+  document.getElementById('f_principal').value = principal > 0 ? principal : '';
   
-  // อัปเดตคำใบ้แสดงจำนวนวันใต้ช่องดอกเบี้ย
-  let hint = document.getElementById('daysHint');
-  if (!hint) {
-     hint = document.createElement('div');
-     hint.id = 'daysHint';
-     hint.style.fontSize = '13px';
-     hint.style.color = 'var(--blue)';
-     hint.style.marginTop = '6px';
-     hint.style.padding = '8px 12px';
-     hint.style.background = 'var(--sky2)';
-     hint.style.borderRadius = 'var(--radius-sm)';
-     document.getElementById('f_interest').parentNode.appendChild(hint);
-  }
-  hint.innerHTML = `<span style="font-size:16px; margin-right:4px;">📅</span> คำนวณจาก <strong>${days} วัน</strong> (นับจากรอบชำระล่าสุดถึงวันที่เลือก)`;
+  document.getElementById('daysHint').innerHTML = `<i class="ph ph-info"></i> คำนวณดอกเบี้ยจากระยะห่าง <b>${days} วัน</b>`;
 }
 
 function calcPrincipal() {
-  const total    = parseFloat(document.getElementById('f_total').value) || 0;
+  const total = parseFloat(document.getElementById('f_total').value) || 0;
   const interest = parseFloat(document.getElementById('f_interest').value) || 0;
-  const principal= total - interest;
-  document.getElementById('f_principal').value = principal.toFixed(2);
-
-  const sel   = document.getElementById('f_account');
-  const opt   = sel.options[sel.selectedIndex];
-  if (opt && opt.dataset.balance) {
-    const remaining = parseFloat(opt.dataset.balance) - Math.max(0, principal);
-    document.getElementById('f_remaining').value = fmt(remaining);
-  }
-}
-
-async function submitPayment() {
-  const accountId = document.getElementById('f_account').value;
-  const date      = document.getElementById('f_date').value;
-  const total     = document.getElementById('f_total').value;
-  const interest  = document.getElementById('f_interest').value;
-  const principal = document.getElementById('f_principal').value;
-  const note      = document.getElementById('f_note').value;
-
-  if (!accountId || !date || !total) {
-    toast('กรุณากรอกข้อมูลให้ครบ', 'error');
-    return;
-  }
-
-  if (!GAS_URL) { toast('ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
-
-  const btn = event.target;
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0;border-top-color:#fff;"></div> กำลังบันทึก...';
-  btn.disabled = true;
-
-  try {
-    const res = await callGAS({ action:'addPayment', accountId, date, total, interest, principal, note });
-    
-    // เพิ่มข้อมูลลง Cache แบบเรียลไทม์เพื่อใช้คำนวณวันในครั้งต่อไปได้ทันที
-    paymentsCache.push({
-        id: res.id || Date.now().toString(),
-        date: date,
-        accountId: accountId,
-        total: parseFloat(total),
-        principal: parseFloat(principal),
-        interest: parseFloat(interest),
-        balance: res.newBalance || 0
-    });
-
-    toast('บันทึกสำเร็จ! เงินต้นลด ' + fmt(res.principal) + ' บ.', 'success');
-    clearForm();
-    refreshAddForm();
-  } catch(e) {
-    toast(e.message, 'error');
-  } finally {
-    btn.innerHTML = originalText;
-    btn.disabled = false;
-  }
+  document.getElementById('f_principal').value = (total - interest).toFixed(2);
 }
 
 function clearForm() {
-  ['f_account','f_date','f_total','f_interest','f_note'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = id === 'f_date' ? new Date().toISOString().split('T')[0] : '';
-  });
+  document.getElementById('f_account').selectedIndex = 0;
+  document.getElementById('f_total').value = '';
+  document.getElementById('f_interest').value = '';
   document.getElementById('f_principal').value = '';
-  document.getElementById('f_remaining').value = '';
+  document.getElementById('f_note').value = '';
+  document.getElementById('minPayHint').style.display = 'none';
+  document.getElementById('daysHint').innerHTML = '';
 }
 
-// =============================================
-//  HISTORY
-// =============================================
+async function submitPayment() {
+  const btn = document.getElementById('btnSubmitPay');
+  const accountId = document.getElementById('f_account').value;
+  const date = document.getElementById('f_date').value;
+  const total = document.getElementById('f_total').value;
+  const interest = document.getElementById('f_interest').value;
+  const principal = document.getElementById('f_principal').value;
+  const note = document.getElementById('f_note').value;
+
+  if(!accountId || !date || !total) { showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error'); return; }
+
+  const oldHtml = btn.innerHTML;
+  btn.innerHTML = '<div class="loader" style="width:20px;height:20px;border-width:2px;margin:0;border-top-color:#fff;display:inline-block;vertical-align:middle;"></div> กำลังบันทึก...';
+  btn.disabled = true;
+
+  try {
+      const res = await callGAS({action: 'addPayment', accountId, date, total, interest, principal, note});
+      
+      // Update cache
+      paymentsCache.push({
+          id: res.id, date, accountId, 
+          total: parseFloat(total), principal: parseFloat(principal), interest: parseFloat(interest), 
+          balance: res.newBalance
+      });
+      
+      // Update account balance in memory so next tab switch doesn't need fetch
+      const accIdx = accountsData.findIndex(a => a.id === accountId);
+      if(accIdx > -1) accountsData[accIdx].balance = res.newBalance;
+
+      showToast(`บันทึกสำเร็จ! ตัดเงินต้นไป ${fmt(principal)} บาท`, 'success');
+      fireConfetti(); // GIMMICK!
+      clearForm();
+      refreshAddForm();
+  } catch(e) {
+      showToast(e.message, 'error');
+  } finally {
+      btn.innerHTML = oldHtml;
+      btn.disabled = false;
+  }
+}
+
+// GIMMICK: Confetti Effect Implementation (No external libs)
+function fireConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const pieces = [];
+    const colors = ['#D4AF37', '#F3E5AB', '#10B981', '#FFFFFF'];
+    
+    for(let i=0; i<100; i++) {
+        pieces.push({
+            x: canvas.width / 2,
+            y: canvas.height / 2 + 100,
+            vx: (Math.random() - 0.5) * 20,
+            vy: (Math.random() - 1) * 20 - 5,
+            size: Math.random() * 10 + 5,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rs: (Math.random() - 0.5) * 10
+        });
+    }
+
+    let animationId;
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
+        pieces.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.5; // gravity
+            p.rotation += p.rs;
+            if(p.y < canvas.height) active = true;
+            
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            ctx.restore();
+        });
+        
+        if(active) {
+            animationId = requestAnimationFrame(render);
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+    render();
+}
+
+// --- NEW GIMMICK FUNCTION: SIMULATOR ---
+function updateSimulator() {
+    const slider = document.getElementById('simSlider');
+    if(!slider) return;
+    const extraPay = parseFloat(slider.value);
+    document.getElementById('simValDisplay').textContent = fmt(extraPay);
+
+    if(currentSimBaseBalance <= 0 || currentSimBaseRate <= 0) return;
+
+    const r = (currentSimBaseRate / 100) / 12;
+    const P = currentSimBaseBalance;
+    const A_base = currentSimBasePayment;
+    const A_new = currentSimBasePayment + extraPay;
+
+    // NPER Formula: -log(1 - rP/A) / log(1+r)
+    const calcNper = (rate, pmt, pv) => {
+        const val = 1 - (rate * pv / pmt);
+        if (val <= 0) return Infinity; // Pay not enough for interest
+        return -Math.log(val) / Math.log(1 + rate);
+    };
+
+    const baseNper = calcNper(r, A_base, P);
+    const newNper = calcNper(r, A_new, P);
+
+    let saveInt = 0;
+    let saveTime = 0;
+
+    if (baseNper !== Infinity && newNper !== Infinity) {
+        const baseTotalInt = (baseNper * A_base) - P;
+        const newTotalInt = (newNper * A_new) - P;
+        saveInt = Math.max(0, baseTotalInt - newTotalInt);
+        saveTime = Math.max(0, baseNper - newNper);
+    }
+
+    // Update DOM
+    const elSaveInt = document.getElementById('simSaveInt');
+    const elSaveTime = document.getElementById('simSaveTime');
+    
+    if(extraPay === 0) {
+        elSaveInt.textContent = "0";
+        elSaveTime.textContent = "0";
+        elSaveInt.style.opacity = "0.4";
+        elSaveTime.style.opacity = "0.4";
+    } else {
+        elSaveInt.textContent = fmt(saveInt);
+        let timeStr = "";
+        const saveMonthsTotal = Math.round(saveTime);
+        if(saveMonthsTotal >= 12) {
+            const y = Math.floor(saveMonthsTotal / 12);
+            const m = saveMonthsTotal % 12;
+            timeStr = `${y} ปี ${m > 0 ? m + ' ด.' : ''}`;
+        } else {
+            timeStr = `${saveMonthsTotal} เดือน`;
+        }
+        elSaveTime.textContent = timeStr;
+        elSaveInt.style.opacity = "1";
+        elSaveTime.style.opacity = "1";
+    }
+}
+
 async function loadHistory() {
-  const el       = document.getElementById('historyArea');
-  const accountId= document.getElementById('hist_account').value;
-  const month    = document.getElementById('hist_month').value;
-
-  el.innerHTML = '<div class="loading"><div class="spinner"></div><br>กำลังโหลดข้อมูลประวัติ...</div>';
-
-  if (!GAS_URL) { el.innerHTML = '<div class="info-box">กรุณาตั้งค่า GAS URL เพื่อดูประวัติ</div>'; return; }
-
-  try {
-    const params = { action: 'getPayments' };
-    if (accountId) params.accountId = accountId;
-    const data = await callGAS(params);
-    let rows = data.payments;
-
-    if (month) {
-      rows = rows.filter(r => r.date && r.date.startsWith(month));
+    const el = document.getElementById('historyArea');
+    const selAcc = document.getElementById('hist_account');
+    
+    // Populate select if empty
+    if(selAcc.options.length <= 1 && accountsData.length > 0) {
+        accountsData.forEach(a => {
+            if(a.id) selAcc.innerHTML += `<option value="${a.id}">${a.name}</option>`;
+        });
     }
 
-    paymentsCache = rows;
+    el.innerHTML = '<div class="loading-state"><div class="loader"></div>ดึงข้อมูล...</div>';
+    
+    try {
+        const filterAcc = selAcc.value;
+        let dataToRender = paymentsCache;
+        
+        // Fetch if cache is empty
+        if(dataToRender.length === 0) {
+            const res = await callGAS({action: 'getPayments'});
+            dataToRender = res.payments || [];
+            paymentsCache = dataToRender;
+        }
 
-    if (!rows.length) {
-      el.innerHTML = '<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;">📂</div>ยังไม่มีรายการชำระในระบบ</div>';
-      return;
+        if(filterAcc) dataToRender = dataToRender.filter(p => p.accountId === filterAcc);
+        
+        if(dataToRender.length === 0) {
+            el.innerHTML = '<div class="loading-state" style="opacity:0.6;"><i class="ph ph-file-dashed" style="font-size:48px;"></i><br>ไม่มีประวัติรายการ</div>';
+            return;
+        }
+
+        // Sort latest first
+        dataToRender.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        el.innerHTML = `
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>วันที่</th>
+                        <th>บัญชี</th>
+                        <th style="text-align:right;">ยอดชำระ</th>
+                        <th style="text-align:right;">ตัดต้น</th>
+                        <th style="text-align:right;">ดอกเบี้ย</th>
+                        <th style="text-align:right;">คงเหลือ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${dataToRender.map(r => `
+                    <tr>
+                        <td>${fmtDate(r.date)}</td>
+                        <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
+                        <td class="number-font" style="text-align:right;">${fmt(r.total)}</td>
+                        <td class="number-font" style="text-align:right; color:var(--success); font-weight:600;">${fmt(r.principal)}</td>
+                        <td class="number-font" style="text-align:right; color:var(--accent-gold);">${fmt(r.interest)}</td>
+                        <td class="number-font" style="text-align:right;">${fmt(r.balance)}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    } catch(e) {
+        el.innerHTML = `<div style="color:var(--danger);">${e.message}</div>`;
     }
-
-    el.innerHTML = `
-      <div style="font-size:14px; color:var(--muted); margin-bottom:16px; font-weight:500;">พบประวัติ ${rows.length} รายการ</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>วันที่ชำระ</th>
-              <th style="text-align:center;">งวดที่</th>
-              <th>บัญชี</th>
-              <th class="num">ยอดชำระ</th>
-              <th class="num">เงินต้น</th>
-              <th class="num">ดอกเบี้ย</th>
-              <th class="num">คงเหลือ</th>
-              <th>หมายเหตุ</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r => `
-              <tr>
-                <td style="white-space:nowrap;">${fmtDate(r.date)}</td>
-                <td style="text-align:center;">${r.period || '-'}</td>
-                <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
-                <td class="num">${fmt(r.total)}</td>
-                <td class="num" style="color:var(--blue); font-weight:600;">${fmt(r.principal)}</td>
-                <td class="num" style="color:var(--gold);">${fmt(r.interest)}</td>
-                <td class="num" style="font-weight:600;">${fmt(r.balance)}</td>
-                <td style="color:var(--muted); font-size:13px; max-width: 150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.note || '-'}</td>
-                <td><button class="btn btn-danger" onclick="deleteRow('${r.id}')">ลบ</button></td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  } catch(e) {
-    el.innerHTML = `<div class="info-box info-box-danger">❌ ${e.message}</div>`;
-  }
 }
 
-async function deleteRow(id) {
-  if (!confirm('ยืนยันการลบรายการชำระนี้? (ยอดคงเหลือจะถูกดึงกลับอัตโนมัติ)')) return;
-  try {
-    await callGAS({ action: 'deletePayment', id });
-    toast('ลบรายการสำเร็จ', 'success');
-    loadHistory();
-  } catch(e) {
-    toast(e.message, 'error');
-  }
-}
-
-function exportCSV() {
-  if (!paymentsCache.length) { toast('ไม่มีข้อมูลสำหรับส่งออก', 'error'); return; }
-  const headers = ['วันที่ชำระ','งวดที่','บัญชี','ยอดชำระ','เงินต้น','ดอกเบี้ย','ยอดคงเหลือ','หมายเหตุ'];
-  const rows = paymentsCache.map(r => [r.date, r.period, r.accountId, r.total, r.principal, r.interest, r.balance, r.note]);
-  const csv  = [headers, ...rows].map(r => r.join(',')).join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = 'mortgage_history.csv';
-  a.click();
-}
-
-// =============================================
-//  AMORTIZE
-// =============================================
 async function loadAmortize() {
-  const el        = document.getElementById('amortizeArea');
-  const accountId = document.getElementById('amo_account').value;
-  const months    = document.getElementById('amo_months').value || 12;
+    const el = document.getElementById('amortizeArea');
+    const selAcc = document.getElementById('amo_account');
+    const months = document.getElementById('amo_months').value || 12;
 
-  el.innerHTML = '<div class="loading"><div class="spinner"></div><br>กำลังคำนวณตารางผ่อนชำระ...</div>';
-
-  if (!GAS_URL) { el.innerHTML = '<div class="info-box">กรุณาตั้งค่า GAS URL เพื่อใช้งานส่วนนี้</div>'; return; }
-
-  try {
-    const params = { action: 'getAmortize', months };
-    if (accountId) params.accountId = accountId;
-    const data = await callGAS(params);
-    const rows = data.rows;
-
-    if (!rows.length) {
-      el.innerHTML = '<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;">📊</div>ไม่พบข้อมูลบัญชีเงินกู้</div>';
-      return;
+    if(selAcc.options.length <= 1 && accountsData.length > 0) {
+        accountsData.forEach(a => {
+            if(a.id) selAcc.innerHTML += `<option value="${a.id}">${a.name}</option>`;
+        });
     }
 
-    el.innerHTML = `
-      <div style="font-size:14px; color:var(--text-dark); margin-bottom:16px; background:var(--sky2); padding:16px 20px; border-radius:var(--radius-md); border:1px solid var(--border); display:flex; align-items:center; gap:12px;">
-        <span style="font-size:24px;">📅</span>
-        <div>
-            คำนวณล่วงหน้า <strong>${rows.length}</strong> งวด <br>
-            ประมาณการดอกเบี้ยรวม: <strong style="color:var(--orange); font-size:16px;">${fmt(rows.reduce((s,r)=>s+r.interest,0))} บาท</strong>
+    el.innerHTML = '<div class="loading-state"><div class="loader"></div>ประมวลผลการคำนวณ...</div>';
+
+    try {
+        const accountId = selAcc.value;
+        const res = await callGAS({action: 'getAmortize', accountId, months});
+        const rows = res.rows || [];
+        
+        if(rows.length === 0) {
+            el.innerHTML = '<div class="loading-state">ไม่พบข้อมูลบัญชีเงินกู้สำหรับคำนวณ</div>';
+            return;
+        }
+
+        const totalInt = rows.reduce((s,r)=>s+r.interest,0);
+
+        el.innerHTML = `
+        <div style="background:var(--accent-gold-dim); padding:16px; border-radius:var(--radius-sm); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--text-secondary);"><i class="ph ph-info"></i> ประมาณการดอกเบี้ยรวม ${rows.length} งวด</span>
+            <strong class="number-font" style="color:var(--accent-gold); font-size:18px;">${fmt(totalInt)} บาท</strong>
         </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="text-align:center;">งวดที่</th>
-              <th>วันที่ครบกำหนด</th>
-              <th>บัญชี</th>
-              <th class="num">ยอดชำระ/งวด</th>
-              <th class="num">ตัดเงินต้น</th>
-              <th class="num">ดอกเบี้ย</th>
-              <th class="num">ยอดคงเหลือ</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r => `
-              <tr>
-                <td style="text-align:center;">${r.period}</td>
-                <td style="white-space:nowrap;">${fmtDate(r.dueDate)}</td>
-                <td><span class="badge ${ACCOUNTS_INFO[r.accountId]?.badge || ''}">${r.accountId}</span></td>
-                <td class="num">${fmt(r.payment)}</td>
-                <td class="num" style="color:var(--blue); font-weight:600;">${fmt(r.principal)}</td>
-                <td class="num" style="color:var(--gold);">${fmt(r.interest)}</td>
-                <td class="num" style="font-weight:600;">${fmt(r.balance)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  } catch(e) {
-    el.innerHTML = `<div class="info-box info-box-danger">❌ ${e.message}</div>`;
-  }
-}
-
-// =============================================
-//  SETTINGS
-// =============================================
-function loadSettingsPage() {
-  document.getElementById('set_gasUrl').value = GAS_URL || '';
-
-  const rc = document.getElementById('rateCards');
-  const accs = [
-    {id:'HOME',  name:'สินเชื่อตัวบ้าน',        rate:3.09, cls:'home'},
-    {id:'EXTRA', name:'สินเชื่อเงินกู้เพิ่ม',    rate:3.09, cls:'extra'},
-    {id:'MRTA',  name:'ประกัน MRTA',             rate:3.09, cls:'mrta'}
-  ];
-  rc.innerHTML = accs.map(a => `
-    <div class="acc-card ${a.cls}">
-      <div class="acc-name">${a.name}</div>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap;">
-        <input type="number" id="rate_${a.id}" value="${a.rate}" step="0.01" min="0" max="30" style="width:130px; flex:none;"/>
-        <span style="font-size:14px; color:var(--muted); font-weight:500;">% ต่อปี</span>
-        <button class="btn btn-sm btn-outline" style="margin-left:auto; background:var(--card);" onclick="saveRate('${a.id}')">บันทึก</button>
-      </div>
-    </div>`).join('');
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align:center;">งวด</th>
+                        <th>ดิวเดท</th>
+                        <th style="text-align:right;">ชำระ</th>
+                        <th style="text-align:right;">ตัดต้น</th>
+                        <th style="text-align:right;">ดอกเบี้ย</th>
+                        <th style="text-align:right;">คงเหลือ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(r => `
+                    <tr>
+                        <td style="text-align:center;">${r.period}</td>
+                        <td>${fmtDate(r.dueDate)}</td>
+                        <td class="number-font" style="text-align:right;">${fmt(r.payment)}</td>
+                        <td class="number-font" style="text-align:right; color:var(--success);">${fmt(r.principal)}</td>
+                        <td class="number-font" style="text-align:right; color:var(--accent-gold);">${fmt(r.interest)}</td>
+                        <td class="number-font" style="text-align:right; font-weight:600;">${fmt(r.balance)}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    } catch(e) {
+        el.innerHTML = `<div style="color:var(--danger);">${e.message}</div>`;
+    }
 }
 
 function saveSettings() {
-  GAS_URL = document.getElementById('set_gasUrl').value.trim();
-  localStorage.setItem('gasUrl', GAS_URL);
-  toast('บันทึก URL สำเร็จ', 'success');
-  document.getElementById('settingsResult').innerHTML =
-    '<div class="info-box"><span style="font-size:20px;">✅</span><div>บันทึก URL เรียบร้อย — <strong>กรุณากด "ทดสอบเชื่อมต่อ"</strong> เพื่อยืนยันการเชื่อมต่อ</div></div>';
+    GAS_URL = document.getElementById('set_gasUrl').value.trim();
+    localStorage.setItem('gasUrl', GAS_URL);
+    showToast('บันทึกการตั้งค่าแล้ว กรุณาทดสอบการเชื่อมต่อ', 'success');
 }
 
 async function testConnection() {
-  GAS_URL = document.getElementById('set_gasUrl').value.trim();
-  if (!GAS_URL) { toast('กรุณากรอก URL ก่อน', 'error'); return; }
-  
-  const btn = event.target; 
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0;border-top-color:var(--navy);"></div> ทดสอบ...'; 
-  btn.disabled = true;
-  
-  try {
-    const data = await callGAS({ action: 'getSettings' });
-    document.getElementById('settingsResult').innerHTML =
-      `<div class="info-box" style="border-color:var(--green); background:var(--green2); color:#065F46;">
-        <span style="font-size:20px;">✅</span>
-        <div>
-            <strong>เชื่อมต่อกับ Google Sheets สำเร็จ!</strong><br>
-            <ul style="margin-top:12px; margin-left:20px; font-size:14px; opacity:0.9;">
-            <li>วันเริ่มสัญญา: ${data.contractStart}</li>
-            <li>กำหนดชำระงวดแรก: ${data.firstPayment}</li>
-            <li>อัตราดอกเบี้ยเริ่มต้น: ${data.defaultRate}%</li>
-            </ul>
-        </div>
-      </div>`;
-    toast('เชื่อมต่อสำเร็จ', 'success');
-    document.getElementById('connectionStatus').textContent = 'เชื่อมต่อแล้ว';
-  } catch(e) {
-    document.getElementById('settingsResult').innerHTML =
-      `<div class="info-box info-box-danger">❌ ${e.message}</div>`;
-    toast('ไม่สามารถเชื่อมต่อได้', 'error');
-  } finally {
-    btn.innerHTML = originalText; 
-    btn.disabled = false;
-  }
+    GAS_URL = document.getElementById('set_gasUrl').value.trim();
+    if(!GAS_URL) { showToast('กรุณากรอก URL', 'error'); return; }
+    
+    const btn = document.getElementById('btnTestConn');
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '<div class="loader" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;"></div> ทดสอบ...';
+    btn.disabled = true;
+
+    try {
+        await callGAS({action: 'getSettings'});
+        document.getElementById('settingsResult').innerHTML = `
+            <div style="padding:16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-sm); color:var(--success);">
+                <i class="ph ph-check-circle" style="font-size:20px; vertical-align:middle;"></i> <strong>เชื่อมต่อฐานข้อมูลสำเร็จ!</strong>
+            </div>`;
+        setConnectionStatus(true);
+        accountsData = []; // force reload on dashboard
+    } catch(e) {
+        document.getElementById('settingsResult').innerHTML = `
+            <div style="padding:16px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); color:var(--danger);">
+                <i class="ph ph-warning-circle" style="font-size:20px; vertical-align:middle;"></i> <strong>${e.message}</strong>
+            </div>`;
+        setConnectionStatus(false);
+    } finally {
+        btn.innerHTML = oldText;
+        btn.disabled = false;
+    }
 }
 
-async function saveRate(accountId) {
-  const rate = document.getElementById('rate_' + accountId).value;
-  if (!rate) return;
-  if (!GAS_URL) { toast('ยังไม่ได้ตั้งค่า GAS URL', 'error'); return; }
-  
-  const btn = event.target;
-  const oldText = btn.textContent;
-  btn.textContent = 'รอสักครู่...';
-  btn.disabled = true;
-  
-  try {
-    await callGAS({ action: 'updateRate', accountId, rate });
-    toast('อัปเดตดอกเบี้ยสำเร็จ', 'success');
-  } catch(e) {
-    toast(e.message, 'error');
-  } finally {
-    btn.textContent = oldText;
-    btn.disabled = false;
-  }
-}
+// Initialize
+window.onload = () => {
+    // Set Time-based Greeting
+    const hr = new Date().getHours();
+    let greet = "สวัสดี, วันนี้คุณเป็นอย่างไรบ้าง?";
+    if(hr < 12) greet = "☀️ อรุณสวัสดิ์ครับ ขอให้เป็นวันที่สดใส";
+    else if(hr < 18) greet = "🌤️ สวัสดีตอนบ่าย ขอให้เป็นวันที่ดี";
+    else greet = "🌙 สวัสดีตอนค่ำ พักผ่อนให้สบายนะครับ";
+    document.getElementById('greetingText').innerText = greet;
 
-// =============================================
-//  INIT
-// =============================================
-window.onload = function() {
-  localStorage.setItem('gasUrl', GAS_URL);
-  document.getElementById('connectionStatus').textContent = 'พร้อมใช้งาน';
-  loadDashboard();
-  refreshAddForm();
-};
+    // Check initial connection silently
+    if(GAS_URL) {
+        callGAS({action: 'getSettings'})
+            .then(() => setConnectionStatus(true))
+            .catch(() => setConnectionStatus(false));
+    }
+    loadDashboard();
+}
 </script>
 </body>
 </html>
