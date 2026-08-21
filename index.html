@@ -595,6 +595,13 @@ function calculateRank(paidPercent) {
     return { name: 'Classic Member', class: '', icon: '⭐️' };
 }
 
+function calculateNPER(ratePerPeriod, pmt, pv) {
+    if (ratePerPeriod === 0) return pv / pmt;
+    const val = pmt - (pv * ratePerPeriod);
+    if (val <= 0) return Infinity; 
+    return Math.log(pmt / val) / Math.log(1 + ratePerPeriod);
+}
+
 async function loadDashboard() {
   updateConnectionUI('กำลังเชื่อมต่อ...');
   const el = document.getElementById('summaryArea');
@@ -632,6 +639,45 @@ function renderDashboard(s) {
     const el = document.getElementById('summaryArea');
     const rank = calculateRank(s.progressPercent);
     
+    // สร้าง HTML สำหรับรายละเอียดการผ่อนรายบัญชี
+    let accountDetailsHtml = '';
+    appState.accounts.forEach(a => {
+        if(a.balance <= 0) return;
+        const info = ACCOUNTS_INFO[a.id] || { name: a.id, minPayment: 0 };
+        const rate = parseFloat(a.rate) || 3.09;
+        const minPay = info.minPayment;
+        
+        let timeStr = 'ไม่สามารถคำนวณได้';
+        if (minPay > 0) {
+            const monthlyRate = (rate / 100) / 12;
+            const months = calculateNPER(monthlyRate, minPay, a.balance);
+            if (months === Infinity) {
+                timeStr = '<span style="color:var(--accent-red);">จ่ายขั้นต่ำไม่พอดอกเบี้ย</span>';
+            } else {
+                const totalMonths = Math.ceil(months);
+                const y = Math.floor(totalMonths / 12);
+                const m = totalMonths % 12;
+                timeStr = (y > 0 ? `${y} ปี ` : '') + (m > 0 || y === 0 ? `${m} เดือน` : '');
+            }
+        }
+        
+        accountDetailsHtml += `
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-light); padding:16px; border-radius:var(--radius-sm); margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-weight:600; color:#fff;">${info.name}</div>
+                <div style="font-family:'IBM Plex Mono'; color:var(--accent-blue); font-weight:600; font-size:16px;">${fmt(a.balance)} บ.</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-secondary); margin-bottom:4px;">
+                <span>ดอกเบี้ย: ${rate.toFixed(2)}%/ปี</span>
+                <span>ขั้นต่ำ: ${fmt0(minPay)} บ./ด.</span>
+            </div>
+            <div style="background:rgba(251, 191, 36, 0.1); padding:10px 12px; border-radius:8px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                <span style="color:var(--accent-gold);">⏳ คาดว่าจะผ่อนหมดใน:</span>
+                <strong style="color:#fff;">${timeStr}</strong>
+            </div>
+        </div>`;
+    });
+    
     el.innerHTML = `
       <!-- Main Balance -->
       <div class="luxe-card" style="background: linear-gradient(180deg, rgba(2, 132, 199, 0.1), var(--bg-card));">
@@ -646,6 +692,13 @@ function renderDashboard(s) {
         <div class="chart-container" style="height: 180px;">
           <canvas id="dashAccountChart"></canvas>
         </div>
+      </div>
+      
+      <!-- Account Time Details (NEW) -->
+      <div class="luxe-card" style="margin-bottom: 20px;">
+        <div class="card-label" style="color:#fff; margin-bottom:4px;">รายละเอียดและระยะเวลาผ่อนชำระ</div>
+        <div class="card-sub" style="margin-bottom:16px;">คำนวณจากยอดหนี้ปัจจุบัน, อัตราดอกเบี้ย และการจ่ายขั้นต่ำ</div>
+        ${accountDetailsHtml}
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
@@ -725,13 +778,6 @@ function renderDashboard(s) {
     });
 
     runSimulator(0);
-}
-
-function calculateNPER(ratePerPeriod, pmt, pv) {
-    if (ratePerPeriod === 0) return pv / pmt;
-    const val = pmt - (pv * ratePerPeriod);
-    if (val <= 0) return Infinity; 
-    return Math.log(pmt / val) / Math.log(1 + ratePerPeriod);
 }
 
 function runSimulator(extraPaymentStr) {
