@@ -33,6 +33,7 @@
     --accent-blue: #38BDF8;
     --accent-blue-dark: #0284C7;
     --accent-red: #EF4444;
+    --accent-pink: #EC4899;
     
     --border-light: rgba(255, 255, 255, 0.08);
     --border-focus: rgba(251, 191, 36, 0.5);
@@ -231,7 +232,7 @@
   .btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
   .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; border-radius: 100px;}
   
-  /* === TABLES (HISTORY) === */
+  /* === TABLES (HISTORY & REPORTS) === */
   .table-header-controls { display: flex; gap: 10px; margin-bottom: 16px; align-items: center;}
   .history-list { display: flex; flex-direction: column; gap: 12px; }
   .hist-row {
@@ -246,11 +247,17 @@
   }
   .badge-EXTRA { border: 1px solid var(--accent-gold); color: var(--accent-gold); background: rgba(251,191,36,0.1); }
   .badge-HOME  { border: 1px solid var(--accent-blue); color: var(--accent-blue); background: rgba(56,189,248,0.1); }
-  .badge-MRTA  { border: 1px solid #EC4899; color: #EC4899; background: rgba(236, 72, 153, 0.1); }
+  .badge-MRTA  { border: 1px solid var(--accent-pink); color: var(--accent-pink); background: rgba(236,72,153,0.1); }
   
   .hist-date { font-size: 13px; color: var(--text-secondary); }
   .hist-amount { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: #fff;}
   .hist-detail { font-size: 12px; color: var(--accent-green); font-family: 'IBM Plex Mono', monospace;}
+
+  .yearly-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: right; }
+  .yearly-table th { padding: 12px 6px; border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-weight: 500; }
+  .yearly-table th:first-child { text-align: left; }
+  .yearly-table td { padding: 14px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'IBM Plex Mono', monospace; }
+  .yearly-table td:first-child { text-align: left; font-family: 'IBM Plex Sans Thai', sans-serif; color: #fff; }
 
   /* === UTILS & TOAST === */
   .chart-container { position: relative; height: 220px; width: 100%; margin-top: 16px;}
@@ -368,6 +375,18 @@
   
   <!-- ================= REPORTS (NEW) ================= -->
   <div id="page-reports" class="page">
+    
+    <!-- 1. Tax Deduction Tracker -->
+    <div class="luxe-card" id="taxTrackerCard">
+        <!-- Rendered via JS -->
+    </div>
+    
+    <!-- 2. Yearly Summary Table -->
+    <div class="luxe-card" id="yearlySummaryCard">
+        <!-- Rendered via JS -->
+    </div>
+
+    <!-- 3. Monthly Trend Chart -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">วิเคราะห์แนวโน้มการผ่อนชำระ</div>
       <div class="card-sub">กราฟแท่งแสดงยอดเงินต้นและดอกเบี้ยรายเดือน</div>
@@ -376,6 +395,7 @@
       </div>
     </div>
     
+    <!-- 4. Paid vs Interest Pie -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">สัดส่วนที่จ่ายไปแล้วทั้งหมด</div>
       <div class="card-sub">เทียบระหว่างเงินต้นที่ลดได้ กับดอกเบี้ยที่เสียไป</div>
@@ -384,6 +404,7 @@
       </div>
     </div>
     
+    <!-- 5. Balances By Account Pie -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">สัดส่วนยอดหนี้คงเหลือ</div>
       <div class="card-sub">แยกตามประเภทบัญชีสินเชื่อ</div>
@@ -511,14 +532,12 @@ function toast(msg, type='') {
 }
 
 function showPage(name, navBtn, title) {
-  // Update UI Tabs
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if(navBtn) navBtn.classList.add('active');
   if(title) document.getElementById('pageTitle').textContent = title;
 
-  // Render logic based on page
   if (name === 'dashboard' && !appState.summary) loadDashboard();
   if (name === 'history') loadHistory();
   if (name === 'reports') renderReports();
@@ -530,59 +549,29 @@ function showPage(name, navBtn, title) {
 }
 
 // =============================================
-//  API COMMUNICATION
+//  API COMMUNICATION (FETCH)
 // =============================================
 async function callGAS(params) {
   if (!GAS_URL) throw new Error('ยังไม่ได้ตั้งค่า GAS URL');
+  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
   
-  // ใช้ชื่อ callback หลอกๆ ส่งไป เพื่อให้ระบบเดิมของ GAS ยังทำงานได้
-  const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-  const p = Object.assign({}, params, { callback: cbName });
-  const url = GAS_URL + '?' + new URLSearchParams(p).toString();
-
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout 15 วินาที
-
-    const response = await fetch(url, { 
-        method: 'GET', 
-        signal: controller.signal 
-    });
-    
-    clearTimeout(timeoutId);
-    const text = await response.text();
-    
-    // ตรวจสอบอย่างปลอดภัยว่าสิ่งที่ได้มาใช่ HTML หรือไม่
-    if (text.trim().startsWith('<')) {
-        throw new Error('เซิร์ฟเวอร์ตอบกลับเป็นหน้าเว็บขัดข้อง 💡 กรุณาไปที่ "ตั้งค่า" แล้วกดปุ่ม "ทดสอบ" เพื่อยืนยันสิทธิ์ Google');
-    }
-
-    // แกะข้อมูล JSON ออกจากรูปแบบ JSONP ( cb_xxxx({ ... }) ) 
-    let dataStr = text.trim();
-    const firstParen = dataStr.indexOf('(');
-    const lastParen = dataStr.lastIndexOf(')');
-    
-    if (firstParen !== -1 && lastParen !== -1 && dataStr.endsWith(')')) {
-        dataStr = dataStr.substring(firstParen + 1, lastParen);
-    }
-
-    // แปลง Text เป็น Object อย่างปลอดภัย
-    const data = JSON.parse(dataStr);
-    
-    if (!data || !data.ok) {
-        throw new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server');
-    }
-    
-    return data;
-    
-  } catch (error) {
-    if (error.name === 'AbortError') {
-        throw new Error('เชื่อมต่อ Timeout - อินเทอร์เน็ตช้า หรือสิทธิ์การเข้าถึง GAS ผิดพลาด');
-    } else if (error instanceof SyntaxError) {
-        throw new Error('รูปแบบข้อมูลจาก Server ไม่ถูกต้อง (ไม่ใช่ JSON)');
-    } else {
-        throw error; // โยน Error ที่สร้างไว้ข้างต้นออกไป
-    }
+      const response = await fetch(url, { method: 'GET', mode: 'cors' });
+      const text = await response.text();
+      
+      if (text.includes('<html') || text.includes('<!DOCTYPE html>')) {
+          throw new Error('Google ขอให้ยืนยันตัวตน (กดทดสอบในหน้าตั้งค่าเพื่อแก้ไข)');
+      }
+      
+      const data = JSON.parse(text);
+      if (!data || !data.ok) throw new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server');
+      return data;
+      
+  } catch(e) {
+      if(e.message.includes('Unexpected token') || e.message.includes('JSON')) {
+          throw new Error('Google ส่งหน้าเพจผิดปกติกลับมา (กดทดสอบในหน้าตั้งค่าเพื่อแก้ไข)');
+      }
+      throw e;
   }
 }
 
@@ -627,7 +616,6 @@ async function loadDashboard() {
     appState.summary = sumRes.summary;
     appState.payments = payRes.payments || [];
     
-    // Calculate avg rate for simulator
     if(appState.accounts.length > 0) {
         appState.avgRate = appState.accounts.reduce((acc, curr) => acc + (parseFloat(curr.rate)||3.09), 0) / appState.accounts.length;
     }
@@ -700,15 +688,13 @@ function renderDashboard(s) {
       </div>
     `;
     
-    // Initial run for simulator (0 extra)
     runSimulator(0);
 }
 
-// NPER function for Simulator
 function calculateNPER(ratePerPeriod, pmt, pv) {
     if (ratePerPeriod === 0) return pv / pmt;
     const val = pmt - (pv * ratePerPeriod);
-    if (val <= 0) return Infinity; // Payment too small to cover interest
+    if (val <= 0) return Infinity; 
     return Math.log(pmt / val) / Math.log(1 + ratePerPeriod);
 }
 
@@ -723,12 +709,10 @@ function runSimulator(extraPaymentStr) {
     const newPmt = basePmt + extra;
     const monthlyRate = (appState.avgRate / 100) / 12;
     
-    // Calculate Base Scenario (0 extra)
     const baseMonths = calculateNPER(monthlyRate, basePmt, balance);
     const baseTotalPaid = baseMonths * basePmt;
     const baseTotalInterest = baseTotalPaid - balance;
     
-    // Calculate New Scenario
     const newMonths = calculateNPER(monthlyRate, newPmt, balance);
     
     if (newMonths === Infinity || baseMonths === Infinity) {
@@ -740,7 +724,6 @@ function runSimulator(extraPaymentStr) {
     const newTotalPaid = newMonths * newPmt;
     const newTotalInterest = newTotalPaid - balance;
     
-    // Diffs
     const savedInt = Math.max(0, baseTotalInterest - newTotalInterest);
     const savedMonths = Math.max(0, Math.ceil(baseMonths) - Math.ceil(newMonths));
     
@@ -754,7 +737,6 @@ function runSimulator(extraPaymentStr) {
     
     document.getElementById('simSavedTime').textContent = extra === 0 ? '-' : timeStr;
 }
-
 
 // =============================================
 //  ADD PAYMENT FORM
@@ -817,7 +799,6 @@ function calcFields() {
   const total   = parseFloat(document.getElementById('f_total').value) || 0;
   const accId   = opt.value;
   
-  // Find last payment date for this account to calculate exact days
   const accPayments = appState.payments.filter(p => p.accountId === accId).sort((a,b) => new Date(b.date) - new Date(a.date));
   const lastDate = accPayments.length > 0 ? new Date(accPayments[0].date) : new Date('2026-05-16');
   const currDate = new Date(document.getElementById('f_date').value);
@@ -848,39 +829,31 @@ async function submitPayment() {
 
   if (!prm.accountId || !prm.date || !prm.total) { toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
 
-  const btn = window.event && window.event.target ? window.event.target : document.querySelector('#page-add .btn-gold');
-  const oldTxt = btn ? btn.innerHTML : 'บันทึกรายการ';
-  if (btn) {
-      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังบันทึก...';
-      btn.disabled = true;
-  }
+  const btn = event.target;
+  const oldTxt = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังบันทึก...';
+  btn.disabled = true;
 
   try {
-    const res = await callGAS(prm);
+    await callGAS(prm);
     toast('บันทึกสำเร็จ!', 'success');
-    
-    // Reset state to force reload on dashboard
     appState.summary = null; 
     
-    // Clear form
     document.getElementById('f_total').value = '';
     document.getElementById('f_interest').value = '';
     document.getElementById('f_principal').value = '';
     document.getElementById('f_remaining').value = '';
     document.getElementById('f_note').value = '';
     
-    // Auto redirect to dashboard
     setTimeout(() => {
-        document.querySelector('.nav-item').click(); // click first nav (dashboard)
+        document.querySelector('.nav-item').click(); 
     }, 1000);
     
   } catch(e) {
     toast(e.message, 'error');
   } finally {
-    if (btn) {
-        btn.innerHTML = oldTxt;
-        btn.disabled = false;
-    }
+    btn.innerHTML = oldTxt;
+    btn.disabled = false;
   }
 }
 
@@ -891,7 +864,6 @@ async function loadHistory() {
   const el = document.getElementById('historyArea');
   const selAcc = document.getElementById('hist_account');
   
-  // Populate select if empty
   if(selAcc.options.length <= 1 && appState.accounts.length > 0) {
       appState.accounts.forEach(a => {
           if(!a.id) return;
@@ -910,7 +882,6 @@ async function loadHistory() {
     const data = await callGAS(params);
     let rows = data.payments || [];
     
-    // update cache
     if(!accountId) appState.payments = rows; 
 
     if (!rows.length) {
@@ -938,7 +909,7 @@ async function loadHistory() {
 }
 
 // =============================================
-//  REPORTS (NEW - CHART.JS)
+//  REPORTS (UPDATED)
 // =============================================
 function renderReports() {
     if(!appState.payments.length || !appState.summary) {
@@ -946,20 +917,87 @@ function renderReports() {
         return;
     }
 
-    // 1. Process Monthly Trend Data (Last 6-12 months)
+    // 1. Data Preparation (Tax & Yearly Summary)
+    const currentYear = new Date().getFullYear();
+    let currentYearInterest = 0;
+    const yearlyStats = {};
+
     const monthlyMap = {};
     appState.payments.forEach(p => {
         const d = new Date(p.date);
-        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        
+        // Year processing
+        const y = d.getFullYear();
+        if (y === currentYear) currentYearInterest += p.interest;
+        
+        if (!yearlyStats[y]) yearlyStats[y] = { total: 0, principal: 0, interest: 0 };
+        yearlyStats[y].total += p.total;
+        yearlyStats[y].principal += p.principal;
+        yearlyStats[y].interest += p.interest;
+
+        // Monthly processing (for Bar Chart)
+        const key = `${y}-${String(d.getMonth()+1).padStart(2,'0')}`;
         const label = d.toLocaleDateString('th-TH', {month:'short', year:'2-digit'});
         if(!monthlyMap[key]) monthlyMap[key] = { label, principal: 0, interest: 0, order: key };
         monthlyMap[key].principal += p.principal;
         monthlyMap[key].interest += p.interest;
     });
 
-    const trendData = Object.values(monthlyMap).sort((a,b) => a.order.localeCompare(b.order)).slice(-12);
+    // --- A. Render Tax Deduction Tracker ---
+    const taxQuota = 100000;
+    const taxPercent = Math.min(100, (currentYearInterest / taxQuota) * 100);
+    document.getElementById('taxTrackerCard').innerHTML = `
+        <div class="card-label" style="color:var(--accent-gold);">🛡️ มาตรวัดสิทธิลดหย่อนภาษีปี ${currentYear}</div>
+        <div class="card-sub">ดอกเบี้ยเงินกู้ยืมเพื่อที่อยู่อาศัย นำไปลดหย่อนได้สูงสุด 100,000 บาท/ปี</div>
+        <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;">
+                <span style="color:#fff;">จ่ายดอกเบี้ยไปแล้ว: <strong style="font-family:'IBM Plex Mono'; color:var(--accent-gold); font-size:16px;">${fmt(currentYearInterest)}</strong> บ.</span>
+                <span style="color:var(--text-muted); font-weight:600;">${taxPercent.toFixed(1)}%</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.05); border-radius:100px; height:8px; overflow:hidden;">
+                <div style="background:linear-gradient(90deg, var(--accent-gold), #D97706); height:100%; width:${taxPercent}%; box-shadow:0 0 10px var(--accent-gold-glow); transition:width 1s;"></div>
+            </div>
+            <div style="margin-top:10px; font-size:12px; color:var(--text-secondary); text-align:right;">
+                เหลือโควต้าให้ใช้สิทธิ์ได้อีก <span style="color:var(--accent-green); font-family:'IBM Plex Mono'; font-size:14px; font-weight:600;">${fmt(Math.max(0, taxQuota - currentYearInterest))}</span> บ.
+            </div>
+        </div>
+    `;
+
+    // --- B. Render Yearly Summary Table ---
+    const years = Object.keys(yearlyStats).sort((a,b) => b - a); // Sort desc
+    let tableHtml = `
+        <div class="card-label" style="color:#fff;">📅 ตารางสรุปรายรับ-จ่ายรายปี</div>
+        <div class="card-sub" style="margin-bottom:16px;">ยอดสรุปการจ่ายเงินต้นและดอกเบี้ยแบ่งตามปี ค.ศ.</div>
+        <div style="overflow-x:auto;">
+            <table class="yearly-table">
+                <thead>
+                    <tr>
+                        <th>ปี (ค.ศ.)</th>
+                        <th>ยอดจ่ายรวม</th>
+                        <th>เงินต้นที่ลด</th>
+                        <th>ดอกเบี้ยจ่าย</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
     
-    // Bar Chart
+    years.forEach(y => {
+        const s = yearlyStats[y];
+        const isCurrent = parseInt(y) === currentYear;
+        tableHtml += `
+            <tr style="${isCurrent ? 'background:rgba(56,189,248,0.05);' : ''}">
+                <td>${y} ${isCurrent ? '<span style="color:var(--accent-blue); font-size:11px; display:block;">(ปัจจุบัน)</span>' : ''}</td>
+                <td style="color:#fff; font-weight:600;">${fmt(s.total)}</td>
+                <td style="color:var(--accent-green);">${fmt(s.principal)}</td>
+                <td style="color:var(--accent-gold);">${fmt(s.interest)}</td>
+            </tr>
+        `;
+    });
+    tableHtml += `</tbody></table></div>`;
+    document.getElementById('yearlySummaryCard').innerHTML = tableHtml;
+
+    // --- C. Bar Chart ---
+    const trendData = Object.values(monthlyMap).sort((a,b) => a.order.localeCompare(b.order)).slice(-12);
     if(charts.bar) charts.bar.destroy();
     const ctxBar = document.getElementById('barChart').getContext('2d');
     charts.bar = new Chart(ctxBar, {
@@ -981,7 +1019,7 @@ function renderReports() {
         }
     });
 
-    // 2. Process Principal vs Interest Doughnut
+    // --- D. Paid vs Interest Doughnut ---
     if(charts.pie1) charts.pie1.destroy();
     const ctxPie1 = document.getElementById('doughnutChart').getContext('2d');
     charts.pie1 = new Chart(ctxPie1, {
@@ -1000,7 +1038,7 @@ function renderReports() {
         }
     });
 
-    // 3. Process Account Balances Doughnut
+    // --- E. Balances By Account Doughnut ---
     if(charts.pie2) charts.pie2.destroy();
     const ctxPie2 = document.getElementById('accountChart').getContext('2d');
     const accData = appState.accounts.filter(a => a.balance > 0);
@@ -1010,7 +1048,7 @@ function renderReports() {
             labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
             datasets: [{
                 data: accData.map(a => a.balance),
-                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], // Blue, Gold, Pink
+                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], // Blue, Gold, Pink (MRTA)
                 borderWidth: 0, hoverOffset: 4
             }]
         },
@@ -1057,74 +1095,45 @@ function saveSettings() {
 
 async function testConnection() {
   if (!GAS_URL) { toast('กรุณากรอก URL ก่อน', 'error'); return; }
-  
-  // ตรวจสอบเบื้องต้นว่า URL ดูเหมือนจะเป็น GAS Web App หรือไม่
-  if (!GAS_URL.includes('script.google.com/macros/s/') || !GAS_URL.endsWith('/exec')) {
-      document.getElementById('settingsResult').innerHTML = `
-        <div style="color:var(--accent-red); padding:12px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.3);">
-            ⚠️ รูปแบบ URL ไม่ถูกต้อง!<br>
-            URL ต้องประกอบด้วย <code>script.google.com/macros/s/</code> และต้องลงท้ายด้วย <code>/exec</code> เสมอ<br><br>
-            <span style="font-size: 13px; color: var(--text-secondary);">โปรดกลับไปที่ Apps Script > Deploy > Manage deployments แล้วคัดลอก URL ของ Web app มาใหม่</span>
-        </div>`;
-      toast('รูปแบบ URL ไม่ถูกต้อง', 'error');
-      return;
-  }
-
   toast('กำลังทดสอบการเชื่อมต่อ...', 'info');
-  const resultArea = document.getElementById('settingsResult');
-  resultArea.innerHTML = '<div class="loading-box"><div class="spinner"></div>กำลังทดสอบเชื่อมต่อกับ Google Sheets...</div>';
-
   try {
     const data = await callGAS({ action: 'getSettings' });
-    resultArea.innerHTML =
-      `<div style="color:var(--accent-green); padding:16px; background:rgba(52, 211, 153, 0.1); border-radius:8px; border: 1px solid rgba(52, 211, 153, 0.3);">
-        ✅ <strong>เชื่อมต่อฐานข้อมูลสำเร็จ!</strong><br>
-        <span style="font-size:13px; opacity:0.8; display:block; margin-top:8px;">วันเริ่มสัญญา: ${data.contractStart || 'ไม่ระบุ'}</span>
+    document.getElementById('settingsResult').innerHTML =
+      `<div style="color:var(--accent-green); padding:10px; background:rgba(52, 211, 153, 0.1); border-radius:8px; margin-top: 10px;">
+        ✅ เชื่อมต่อฐานข้อมูลสำเร็จ!<br>
+        <span style="font-size:12px; opacity:0.8;">วันเริ่มสัญญา: ${data.contractStart}</span>
       </div>`;
       
-      // Reload App state
       appState.summary = null;
-      updateConnectionUI('เชื่อมต่อแล้ว');
   } catch(e) {
-    resultArea.innerHTML = `
-        <div style="color:var(--accent-red); padding:16px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 14px;">
-            <div style="font-weight: 600; margin-bottom: 8px;">❌ การเชื่อมต่อล้มเหลว</div>
-            <div style="white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; margin-bottom: 12px;">${e.message}</div>
-            
-            <strong style="color: var(--accent-gold);">วิธีแก้ไข (Troubleshooting):</strong>
-            <ol style="margin-top: 8px; margin-left: 20px; line-height: 1.6; color: var(--text-secondary);">
-                <li>เปิด Google Apps Script ของคุณ</li>
-                <li>คลิกปุ่มสีฟ้ามุมขวาบน <strong>Deploy > Manage deployments</strong></li>
-                <li>คลิกไอคอนดินสอ (Edit)</li>
-                <li>ในหัวข้อ <strong>Who has access</strong> ต้องเลือกเป็น <strong style="color: #fff;">Anyone</strong> เท่านั้น</li>
-                <li>คลิก Deploy อีกครั้ง (สร้างเวอร์ชันใหม่)</li>
-                <li>นำ URL ใหม่อันเดิมมาวาง แล้วกดทดสอบอีกครั้ง</li>
-            </ol>
-            
-            <div style="margin-top: 12px; font-size: 13px; color: var(--accent-blue);">
-                <i style="margin-right:4px;">🔑</i> หากยังไม่ได้ ให้ลอง <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--accent-blue); text-decoration: underline;">คลิกที่นี่เพื่อเปิดหน้าต่างยืนยันสิทธิ์ Google</a> ด้วยตนเอง 1 ครั้ง
-            </div>
-        </div>`;
-    updateConnectionUI('เชื่อมต่อล้มเหลว', true);
+    document.getElementById('settingsResult').innerHTML = 
+    `<div style="color:var(--accent-red); padding:12px; background:rgba(239, 68, 68, 0.1); border-radius:8px; font-size:13px; line-height:1.6; margin-top: 10px;">
+        ❌ <strong>พบปัญหาการเชื่อมต่อ</strong><br>
+        <span style="opacity:0.9;">${e.message}</span>
+        <br><br>
+        <strong style="color:#fff;">วิธีแก้ไข:</strong><br>
+        1. <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--accent-blue); text-decoration:underline;">คลิกที่นี่เพื่อเปิดหน้ายืนยันสิทธิ์</a><br>
+        2. กดล็อกอินและ Allow สิทธิ์ให้ Google Apps Script<br>
+        3. กลับมาที่หน้านี้แล้วกด "ทดสอบ" อีกครั้ง
+    </div>`;
   }
 }
 
 async function saveRate(accountId) {
   const rate = document.getElementById('rate_' + accountId).value;
   if (!rate) return;
-  
-  const btn = window.event && window.event.target ? window.event.target : document.querySelector(`button[onclick="saveRate('${accountId}')"]`);
-  const oldText = btn ? btn.textContent : 'บันทึก';
-  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+  const btn = event.target;
+  const oldText = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
   
   try {
     await callGAS({ action: 'updateRate', accountId, rate });
     toast('อัปเดตดอกเบี้ยสำเร็จ', 'success');
-    appState.summary = null; // force reload next time dashboard is opened
+    appState.summary = null; 
   } catch(e) {
     toast(e.message, 'error');
   } finally {
-    if (btn) { btn.textContent = oldText; btn.disabled = false; }
+    btn.textContent = oldText; btn.disabled = false;
   }
 }
 
@@ -1133,7 +1142,7 @@ async function saveRate(accountId) {
 // =============================================
 window.onload = function() {
   setGreeting();
-  setInterval(setGreeting, 60000 * 60); // Update greeting every hour
+  setInterval(setGreeting, 60000 * 60); 
   loadDashboard();
 };
 </script>
