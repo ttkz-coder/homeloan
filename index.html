@@ -56,7 +56,7 @@
     font-size: 15px;
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
-    padding-bottom: 90px; /* Space for bottom nav */
+    padding-bottom: 90px;
     padding-top: env(safe-area-inset-top);
   }
 
@@ -119,7 +119,6 @@
     overflow: hidden;
   }
   
-  /* Subtle glow top border for cards */
   .luxe-card::after {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
@@ -373,7 +372,7 @@
     </div>
   </div>
   
-  <!-- ================= REPORTS (NEW) ================= -->
+  <!-- ================= REPORTS ================= -->
   <div id="page-reports" class="page">
     
     <!-- 1. Tax Deduction Tracker -->
@@ -485,7 +484,7 @@ let appState = {
 };
 
 // Chart Instances
-let charts = { bar: null, pie1: null, pie2: null };
+let charts = { bar: null, pie1: null, pie2: null, dashPie: null };
 
 // Chart.js Global Dark Theme Config
 Chart.defaults.color = '#94A3B8';
@@ -641,6 +640,14 @@ function renderDashboard(s) {
         <div class="card-sub">จากเริ่มต้น ${fmt(s.totalOriginal)} บาท</div>
       </div>
 
+      <!-- Account Breakdown Chart -->
+      <div class="luxe-card" style="margin-bottom: 20px;">
+        <div class="card-label" style="color:#fff;">สัดส่วนยอดหนี้แยกตามบัญชี</div>
+        <div class="chart-container" style="height: 180px;">
+          <canvas id="dashAccountChart"></canvas>
+        </div>
+      </div>
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
         <div class="luxe-card" style="margin:0;">
           <div class="card-label">ดอกเบี้ยสะสม</div>
@@ -688,6 +695,35 @@ function renderDashboard(s) {
       </div>
     `;
     
+    // Initialize Dashboard Account Chart
+    if(charts.dashPie) charts.dashPie.destroy();
+    const ctxDash = document.getElementById('dashAccountChart').getContext('2d');
+    const accData = appState.accounts.filter(a => a.balance > 0);
+    charts.dashPie = new Chart(ctxDash, {
+        type: 'doughnut',
+        data: {
+            labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
+            datasets: [{
+                data: accData.map(a => a.balance),
+                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], // Blue, Gold, Pink (MRTA)
+                borderWidth: 0, hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '75%',
+            plugins: { 
+                legend: { position: 'right', labels: { boxWidth: 12, color: '#94A3B8', font: {family: "'IBM Plex Sans Thai', sans-serif"} } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ' ' + Number(context.raw).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' บ.';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     runSimulator(0);
 }
 
@@ -909,7 +945,7 @@ async function loadHistory() {
 }
 
 // =============================================
-//  REPORTS (UPDATED)
+//  REPORTS
 // =============================================
 function renderReports() {
     if(!appState.payments.length || !appState.summary) {
