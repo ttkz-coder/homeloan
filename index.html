@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-<title>My Mortgage Tracker</title>
+<title>My Mortgage Tracker - Premium</title>
     
 <!-- ตั้งค่า Icon สำหรับ Add to Home Screen -->
 <link rel="apple-touch-icon" href="home-loan.jpg">
 <link rel="icon" type="image/jpg" href="home-loan.jpg">
-<meta name="apple-mobile-web-app-title" content="My Mortgage Tracker">
+<meta name="apple-mobile-web-app-title" content="Homeloan">
 <meta name="theme-color" content="#0A0F1C">
     
 <!-- นำเข้า Chart.js -->
@@ -246,7 +246,7 @@
   }
   .badge-EXTRA { border: 1px solid var(--accent-gold); color: var(--accent-gold); background: rgba(251,191,36,0.1); }
   .badge-HOME  { border: 1px solid var(--accent-blue); color: var(--accent-blue); background: rgba(56,189,248,0.1); }
-  .badge-MRTA  { border: 1px solid #A78BFA; color: #A78BFA; background: rgba(167,139,250,0.1); }
+  .badge-MRTA  { border: 1px solid #EC4899; color: #EC4899; background: rgba(236, 72, 153, 0.1); }
   
   .hist-date { font-size: 13px; color: var(--text-secondary); }
   .hist-amount { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: #fff;}
@@ -532,30 +532,58 @@ function showPage(name, navBtn, title) {
 // =============================================
 //  API COMMUNICATION
 // =============================================
-function callGAS(params) {
-  return new Promise((resolve, reject) => {
-    if (!GAS_URL) { reject(new Error('ยังไม่ได้ตั้งค่า GAS URL')); return; }
-    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
-    const timer = setTimeout(() => { cleanup(); reject(new Error('เชื่อมต่อ Timeout (20s)')); }, 20000);
+async function callGAS(params) {
+  if (!GAS_URL) throw new Error('ยังไม่ได้ตั้งค่า GAS URL');
+  
+  // ใช้ชื่อ callback หลอกๆ ส่งไป เพื่อให้ระบบเดิมของ GAS ยังทำงานได้
+  const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+  const p = Object.assign({}, params, { callback: cbName });
+  const url = GAS_URL + '?' + new URLSearchParams(p).toString();
 
-    function cleanup() {
-      clearTimeout(timer); delete window[cbName];
-      const s = document.getElementById(cbName); if (s) s.remove();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout 15 วินาที
+
+    const response = await fetch(url, { 
+        method: 'GET', 
+        signal: controller.signal 
+    });
+    
+    clearTimeout(timeoutId);
+    const text = await response.text();
+    
+    // ตรวจสอบอย่างปลอดภัยว่าสิ่งที่ได้มาใช่ HTML หรือไม่
+    if (text.trim().startsWith('<')) {
+        throw new Error('เซิร์ฟเวอร์ตอบกลับเป็นหน้าเว็บขัดข้อง 💡 กรุณาไปที่ "ตั้งค่า" แล้วกดปุ่ม "ทดสอบ" เพื่อยืนยันสิทธิ์ Google');
     }
 
-    window[cbName] = function(data) {
-      cleanup();
-      if (!data || !data.ok) reject(new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server'));
-      else resolve(data);
-    };
+    // แกะข้อมูล JSON ออกจากรูปแบบ JSONP ( cb_xxxx({ ... }) ) 
+    let dataStr = text.trim();
+    const firstParen = dataStr.indexOf('(');
+    const lastParen = dataStr.lastIndexOf(')');
+    
+    if (firstParen !== -1 && lastParen !== -1 && dataStr.endsWith(')')) {
+        dataStr = dataStr.substring(firstParen + 1, lastParen);
+    }
 
-    const p = Object.assign({}, params, { callback: cbName });
-    const url = GAS_URL + '?' + new URLSearchParams(p).toString();
-    const script = document.createElement('script');
-    script.id  = cbName; script.src = url;
-    script.onerror = () => { cleanup(); reject(new Error('โหลดสคริปต์ไม่สำเร็จ ตรวจสอบ URL')); };
-    document.head.appendChild(script);
-  });
+    // แปลง Text เป็น Object อย่างปลอดภัย
+    const data = JSON.parse(dataStr);
+    
+    if (!data || !data.ok) {
+        throw new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server');
+    }
+    
+    return data;
+    
+  } catch (error) {
+    if (error.name === 'AbortError') {
+        throw new Error('เชื่อมต่อ Timeout - อินเทอร์เน็ตช้า หรือสิทธิ์การเข้าถึง GAS ผิดพลาด');
+    } else if (error instanceof SyntaxError) {
+        throw new Error('รูปแบบข้อมูลจาก Server ไม่ถูกต้อง (ไม่ใช่ JSON)');
+    } else {
+        throw error; // โยน Error ที่สร้างไว้ข้างต้นออกไป
+    }
+  }
 }
 
 function updateConnectionUI(status, isError=false) {
@@ -820,10 +848,12 @@ async function submitPayment() {
 
   if (!prm.accountId || !prm.date || !prm.total) { toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
 
-  const btn = event.target;
-  const oldTxt = btn.innerHTML;
-  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังบันทึก...';
-  btn.disabled = true;
+  const btn = window.event && window.event.target ? window.event.target : document.querySelector('#page-add .btn-gold');
+  const oldTxt = btn ? btn.innerHTML : 'บันทึกรายการ';
+  if (btn) {
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังบันทึก...';
+      btn.disabled = true;
+  }
 
   try {
     const res = await callGAS(prm);
@@ -847,8 +877,10 @@ async function submitPayment() {
   } catch(e) {
     toast(e.message, 'error');
   } finally {
-    btn.innerHTML = oldTxt;
-    btn.disabled = false;
+    if (btn) {
+        btn.innerHTML = oldTxt;
+        btn.disabled = false;
+    }
   }
 }
 
@@ -978,7 +1010,7 @@ function renderReports() {
             labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
             datasets: [{
                 data: accData.map(a => a.balance),
-                backgroundColor: ['#38BDF8', '#FBBF24', '#A78BFA'], // Blue, Gold, Purple
+                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], // Blue, Gold, Pink
                 borderWidth: 0, hoverOffset: 4
             }]
         },
@@ -1025,28 +1057,65 @@ function saveSettings() {
 
 async function testConnection() {
   if (!GAS_URL) { toast('กรุณากรอก URL ก่อน', 'error'); return; }
+  
+  // ตรวจสอบเบื้องต้นว่า URL ดูเหมือนจะเป็น GAS Web App หรือไม่
+  if (!GAS_URL.includes('script.google.com/macros/s/') || !GAS_URL.endsWith('/exec')) {
+      document.getElementById('settingsResult').innerHTML = `
+        <div style="color:var(--accent-red); padding:12px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.3);">
+            ⚠️ รูปแบบ URL ไม่ถูกต้อง!<br>
+            URL ต้องประกอบด้วย <code>script.google.com/macros/s/</code> และต้องลงท้ายด้วย <code>/exec</code> เสมอ<br><br>
+            <span style="font-size: 13px; color: var(--text-secondary);">โปรดกลับไปที่ Apps Script > Deploy > Manage deployments แล้วคัดลอก URL ของ Web app มาใหม่</span>
+        </div>`;
+      toast('รูปแบบ URL ไม่ถูกต้อง', 'error');
+      return;
+  }
+
   toast('กำลังทดสอบการเชื่อมต่อ...', 'info');
+  const resultArea = document.getElementById('settingsResult');
+  resultArea.innerHTML = '<div class="loading-box"><div class="spinner"></div>กำลังทดสอบเชื่อมต่อกับ Google Sheets...</div>';
+
   try {
     const data = await callGAS({ action: 'getSettings' });
-    document.getElementById('settingsResult').innerHTML =
-      `<div style="color:var(--accent-green); padding:10px; background:rgba(52, 211, 153, 0.1); border-radius:8px;">
-        ✅ เชื่อมต่อฐานข้อมูลสำเร็จ!<br>
-        <span style="font-size:12px; opacity:0.8;">วันเริ่มสัญญา: ${data.contractStart}</span>
+    resultArea.innerHTML =
+      `<div style="color:var(--accent-green); padding:16px; background:rgba(52, 211, 153, 0.1); border-radius:8px; border: 1px solid rgba(52, 211, 153, 0.3);">
+        ✅ <strong>เชื่อมต่อฐานข้อมูลสำเร็จ!</strong><br>
+        <span style="font-size:13px; opacity:0.8; display:block; margin-top:8px;">วันเริ่มสัญญา: ${data.contractStart || 'ไม่ระบุ'}</span>
       </div>`;
       
       // Reload App state
       appState.summary = null;
+      updateConnectionUI('เชื่อมต่อแล้ว');
   } catch(e) {
-    document.getElementById('settingsResult').innerHTML = `<div style="color:var(--accent-red);">❌ ${e.message}</div>`;
+    resultArea.innerHTML = `
+        <div style="color:var(--accent-red); padding:16px; background:rgba(239, 68, 68, 0.1); border-radius:8px; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 14px;">
+            <div style="font-weight: 600; margin-bottom: 8px;">❌ การเชื่อมต่อล้มเหลว</div>
+            <div style="white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; margin-bottom: 12px;">${e.message}</div>
+            
+            <strong style="color: var(--accent-gold);">วิธีแก้ไข (Troubleshooting):</strong>
+            <ol style="margin-top: 8px; margin-left: 20px; line-height: 1.6; color: var(--text-secondary);">
+                <li>เปิด Google Apps Script ของคุณ</li>
+                <li>คลิกปุ่มสีฟ้ามุมขวาบน <strong>Deploy > Manage deployments</strong></li>
+                <li>คลิกไอคอนดินสอ (Edit)</li>
+                <li>ในหัวข้อ <strong>Who has access</strong> ต้องเลือกเป็น <strong style="color: #fff;">Anyone</strong> เท่านั้น</li>
+                <li>คลิก Deploy อีกครั้ง (สร้างเวอร์ชันใหม่)</li>
+                <li>นำ URL ใหม่อันเดิมมาวาง แล้วกดทดสอบอีกครั้ง</li>
+            </ol>
+            
+            <div style="margin-top: 12px; font-size: 13px; color: var(--accent-blue);">
+                <i style="margin-right:4px;">🔑</i> หากยังไม่ได้ ให้ลอง <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--accent-blue); text-decoration: underline;">คลิกที่นี่เพื่อเปิดหน้าต่างยืนยันสิทธิ์ Google</a> ด้วยตนเอง 1 ครั้ง
+            </div>
+        </div>`;
+    updateConnectionUI('เชื่อมต่อล้มเหลว', true);
   }
 }
 
 async function saveRate(accountId) {
   const rate = document.getElementById('rate_' + accountId).value;
   if (!rate) return;
-  const btn = event.target;
-  const oldText = btn.textContent;
-  btn.textContent = '...'; btn.disabled = true;
+  
+  const btn = window.event && window.event.target ? window.event.target : document.querySelector(`button[onclick="saveRate('${accountId}')"]`);
+  const oldText = btn ? btn.textContent : 'บันทึก';
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
   
   try {
     await callGAS({ action: 'updateRate', accountId, rate });
@@ -1055,7 +1124,7 @@ async function saveRate(accountId) {
   } catch(e) {
     toast(e.message, 'error');
   } finally {
-    btn.textContent = oldText; btn.disabled = false;
+    if (btn) { btn.textContent = oldText; btn.disabled = false; }
   }
 }
 
