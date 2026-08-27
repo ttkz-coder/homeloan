@@ -236,11 +236,14 @@
   .history-list { display: flex; flex-direction: column; gap: 12px; }
   .hist-row {
     background: var(--bg-input); border-radius: var(--radius-sm);
-    padding: 16px; display: flex; justify-content: space-between; align-items: center;
+    padding: 16px; display: flex; flex-direction: column; gap: 12px;
     border: 1px solid var(--border-light);
   }
+  .hist-main { display: flex; justify-content: space-between; align-items: center; }
   .hist-left { display: flex; flex-direction: column; gap: 4px; }
   .hist-right { text-align: right; display: flex; flex-direction: column; gap: 4px; }
+  .hist-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+  
   .badge-acc {
     display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
   }
@@ -258,12 +261,29 @@
   .yearly-table td { padding: 14px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'IBM Plex Mono', monospace; }
   .yearly-table td:first-child { text-align: left; font-family: 'IBM Plex Sans Thai', sans-serif; color: #fff; }
 
+  /* === MODAL (EDIT) === */
+  .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 15, 28, 0.8); backdrop-filter: blur(5px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: auto; }
+  .modal-content {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg); padding: 24px; width: 90%; max-width: 400px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      transform: translateY(20px); transition: transform 0.3s;
+      max-height: 80vh; overflow-y: auto;
+  }
+  .modal-overlay.active .modal-content { transform: translateY(0); }
+
   /* === UTILS & TOAST === */
   .chart-container { position: relative; height: 220px; width: 100%; margin-top: 16px;}
   .chart-container-large { position: relative; height: 300px; width: 100%; margin-top: 16px;}
   .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
   
-  .toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px;}
+  .toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px;}
   .toast {
     background: var(--bg-card); border: 1px solid var(--border-light); color: #fff;
     padding: 14px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
@@ -455,10 +475,47 @@
     รายงาน
   </button>
   <button class="nav-item" onclick="showPage('settings', this, 'ตั้งค่าระบบ')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     ตั้งค่า
   </button>
 </nav>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <div class="card-label" style="font-size:16px; color:#fff; border-bottom:1px solid var(--border-light); padding-bottom:12px; margin-bottom:16px;">แก้ไขรายการชำระ</div>
+        <input type="hidden" id="e_id" />
+        <input type="hidden" id="e_account" />
+        
+        <div class="form-group">
+            <label>วันที่</label>
+            <input type="date" id="e_date" />
+        </div>
+        <div class="form-group">
+            <label>ยอดชำระทั้งหมด (บาท)</label>
+            <input type="number" id="e_total" step="0.01" oninput="calcEditFields('total')" style="font-size:20px; font-weight:600; color:var(--accent-gold);"/>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div class="form-group">
+                <label>เงินต้น</label>
+                <input type="number" id="e_principal" step="0.01" oninput="calcEditFields('principal')" style="color:var(--accent-green);"/>
+            </div>
+            <div class="form-group">
+                <label>ดอกเบี้ย</label>
+                <input type="number" id="e_interest" step="0.01" oninput="calcEditFields('interest')"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>หมายเหตุ</label>
+            <input type="text" id="e_note" />
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn btn-gold" onclick="saveEdit()" id="btnSaveEdit">บันทึก</button>
+            <button class="btn btn-outline" onclick="closeEditModal()">ยกเลิก</button>
+        </div>
+    </div>
+</div>
 
 <!-- TOAST CONTAINER -->
 <div class="toast-wrap" id="toastWrap"></div>
@@ -896,7 +953,6 @@ function calcFields() {
   updateRemainingUI();
 }
 
-// ฟังก์ชันเมื่อผู้ใช้แก้ไข "เงินต้น" ด้วยตัวเอง
 function onPrincipalChange() {
     const total = parseFloat(document.getElementById('f_total').value) || 0;
     const principal = parseFloat(document.getElementById('f_principal').value) || 0;
@@ -906,7 +962,6 @@ function onPrincipalChange() {
     updateRemainingUI();
 }
 
-// ฟังก์ชันเมื่อผู้ใช้แก้ไข "ดอกเบี้ย" ด้วยตัวเอง
 function onInterestChange() {
     const total = parseFloat(document.getElementById('f_total').value) || 0;
     const interest = parseFloat(document.getElementById('f_interest').value) || 0;
@@ -916,7 +971,6 @@ function onInterestChange() {
     updateRemainingUI();
 }
 
-// อัปเดตยอดคงเหลือหลังจากกรอกหรือแก้ไขข้อมูล
 function updateRemainingUI() {
     const sel = document.getElementById('f_account');
     const opt = sel.options[sel.selectedIndex];
@@ -971,7 +1025,7 @@ async function submitPayment() {
 }
 
 // =============================================
-//  HISTORY
+//  HISTORY & EDITING
 // =============================================
 async function loadHistory() {
   const el = document.getElementById('historyArea');
@@ -1004,20 +1058,89 @@ async function loadHistory() {
 
     el.innerHTML = `<div class="history-list">` + rows.map(r => `
       <div class="hist-row">
-        <div class="hist-left">
-            <span class="badge-acc badge-${r.accountId}">${r.accountId}</span>
-            <span class="hist-date">${fmtDate(r.date)}</span>
-            ${r.note ? `<span style="font-size:11px; color:var(--text-muted);">${r.note}</span>` : ''}
+        <div class="hist-main">
+            <div class="hist-left">
+                <span class="badge-acc badge-${r.accountId}">${r.accountId}</span>
+                <span class="hist-date">${fmtDate(r.date)}</span>
+            </div>
+            <div class="hist-right">
+                <span class="hist-amount">${fmt(r.total)}</span>
+                <span class="hist-detail">ต้น ${fmt(r.principal)} | ดบ. ${fmt(r.interest)}</span>
+            </div>
         </div>
-        <div class="hist-right">
-            <span class="hist-amount">${fmt(r.total)}</span>
-            <span class="hist-detail">ต้น ${fmt(r.principal)} | ดบ. ${fmt(r.interest)}</span>
+        ${r.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${r.note}</div>` : ''}
+        <div class="hist-actions">
+            <button class="btn btn-outline btn-sm" style="padding:4px 10px; font-size:11px;" onclick='openEditModal(${JSON.stringify(r)})'>✎ แก้ไข</button>
         </div>
       </div>
     `).join('') + `</div>`;
     
   } catch(e) {
     el.innerHTML = `<div class="empty-state" style="color:var(--accent-red);">❌ ${e.message}</div>`;
+  }
+}
+
+// Edit Modal Functions
+function openEditModal(paymentObj) {
+    document.getElementById('e_id').value = paymentObj.id;
+    document.getElementById('e_account').value = paymentObj.accountId;
+    document.getElementById('e_date').value = paymentObj.date.split('T')[0];
+    document.getElementById('e_total').value = paymentObj.total;
+    document.getElementById('e_principal').value = paymentObj.principal;
+    document.getElementById('e_interest').value = paymentObj.interest;
+    document.getElementById('e_note').value = paymentObj.note || '';
+    
+    document.getElementById('editModal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+}
+
+function calcEditFields(changedField) {
+    const total = parseFloat(document.getElementById('e_total').value) || 0;
+    let principal = parseFloat(document.getElementById('e_principal').value) || 0;
+    let interest = parseFloat(document.getElementById('e_interest').value) || 0;
+    
+    if (changedField === 'total' || changedField === 'principal') {
+        interest = Math.max(0, total - principal);
+        document.getElementById('e_interest').value = interest > 0 ? interest.toFixed(2) : '';
+    } else if (changedField === 'interest') {
+        principal = Math.max(0, total - interest);
+        document.getElementById('e_principal').value = principal > 0 ? principal.toFixed(2) : '';
+    }
+}
+
+async function saveEdit() {
+    const prm = {
+      action: 'editPayment',
+      id: document.getElementById('e_id').value,
+      accountId: document.getElementById('e_account').value,
+      date: document.getElementById('e_date').value,
+      total: document.getElementById('e_total').value,
+      interest: document.getElementById('e_interest').value,
+      principal: document.getElementById('e_principal').value,
+      note: document.getElementById('e_note').value
+  };
+
+  if (!prm.id || !prm.date || !prm.total) { toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+
+  const btn = document.getElementById('btnSaveEdit');
+  const oldTxt = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>';
+  btn.disabled = true;
+
+  try {
+    await callGAS(prm);
+    toast('บันทึกการแก้ไขสำเร็จ', 'success');
+    closeEditModal();
+    appState.summary = null; // force reload dashboard
+    loadHistory(); // refresh list
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.innerHTML = oldTxt;
+    btn.disabled = false;
   }
 }
 
