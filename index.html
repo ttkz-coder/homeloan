@@ -788,6 +788,14 @@ function renderDashboard(s) {
         </div>
         
         <div class="simulator-box">
+            <!-- NEW: Account Selector -->
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: block;">เลือกบัญชีที่จะโปะเพิ่ม:</label>
+                <select id="simAccountSelect" onchange="runSimulator(document.getElementById('simSlider').value)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(251, 191, 36, 0.3); color: #fff; padding: 10px 14px; font-size: 13px; border-radius: 8px;">
+                    ${appState.accounts.filter(a => a.balance > 0).map(a => `<option value="${a.id}">${ACCOUNTS_INFO[a.id]?.name || a.id} (ดอกเบี้ย ${a.rate}%)</option>`).join('')}
+                </select>
+            </div>
+
             <div style="display:flex; justify-content:space-between; color:#fff; font-size:14px;">
                 <span>โปะเพิ่มเดือนละ:</span>
                 <strong id="simExtraVal" style="color:var(--accent-gold); font-family:'IBM Plex Mono'; font-size:16px;">+0 ฿</strong>
@@ -844,17 +852,36 @@ function renderDashboard(s) {
     runSimulator(0);
 }
 
+function calculateNPER(ratePerPeriod, pmt, pv) {
+    if (ratePerPeriod === 0) return pv / pmt;
+    const val = pmt - (pv * ratePerPeriod);
+    if (val <= 0) return Infinity; 
+    return Math.log(pmt / val) / Math.log(1 + ratePerPeriod);
+}
+
 function runSimulator(extraPaymentStr) {
     const extra = parseInt(extraPaymentStr) || 0;
     document.getElementById('simExtraVal').textContent = '+' + fmt0(extra) + ' ฿';
     
-    if(!appState.summary || appState.summary.totalRemaining <= 0) return;
+    const simAccSelect = document.getElementById('simAccountSelect');
+    if(!simAccSelect) return;
     
-    const balance = appState.summary.totalRemaining;
-    const basePmt = appState.baseMinPayment;
+    const simAccId = simAccSelect.value;
+    const acc = appState.accounts.find(a => a.id === simAccId);
+    
+    if(!acc || acc.balance <= 0) return;
+    
+    const balance = acc.balance;
+    const basePmt = ACCOUNTS_INFO[simAccId]?.minPayment || 0;
     const newPmt = basePmt + extra;
-    const monthlyRate = (appState.avgRate / 100) / 12;
+    const monthlyRate = (parseFloat(acc.rate) / 100) / 12;
     
+    if (basePmt <= 0) {
+         document.getElementById('simSavedInt').textContent = "ไม่มีค่างวดขั้นต่ำ";
+         document.getElementById('simSavedTime').textContent = "-";
+         return;
+    }
+
     const baseMonths = calculateNPER(monthlyRate, basePmt, balance);
     const baseTotalPaid = baseMonths * basePmt;
     const baseTotalInterest = baseTotalPaid - balance;
