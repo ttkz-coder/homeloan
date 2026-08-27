@@ -422,6 +422,15 @@
         <canvas id="doughnutChart"></canvas>
       </div>
     </div>
+
+    <!-- NEW: Principal Paid by Account Pie -->
+    <div class="luxe-card">
+      <div class="card-label" style="color:#fff;">สัดส่วนเงินต้นที่ชำระไปแล้ว</div>
+      <div class="card-sub">แยกตามประเภทบัญชีสินเชื่อ</div>
+      <div class="chart-container">
+        <canvas id="principalPaidChart"></canvas>
+      </div>
+    </div>
     
     <!-- 5. Balances By Account Pie -->
     <div class="luxe-card">
@@ -541,7 +550,7 @@ let appState = {
 };
 
 // Chart Instances
-let charts = { bar: null, pie1: null, pie2: null, dashPie: null };
+let charts = { bar: null, pie1: null, pie2: null, dashPie: null, pie3: null };
 
 // Chart.js Global Dark Theme Config
 Chart.defaults.color = '#94A3B8';
@@ -1159,6 +1168,8 @@ function renderReports() {
     const yearlyStats = {};
 
     const monthlyMap = {};
+    const principalPaidByAcc = {}; // New variable to track principal paid by account
+
     appState.payments.forEach(p => {
         const d = new Date(p.date);
         
@@ -1177,6 +1188,10 @@ function renderReports() {
         if(!monthlyMap[key]) monthlyMap[key] = { label, principal: 0, interest: 0, order: key };
         monthlyMap[key].principal += p.principal;
         monthlyMap[key].interest += p.interest;
+
+        // Principal paid by account processing
+        if(!principalPaidByAcc[p.accountId]) principalPaidByAcc[p.accountId] = 0;
+        principalPaidByAcc[p.accountId] += p.principal;
     });
 
     // --- A. Render Tax Deduction Tracker ---
@@ -1271,6 +1286,45 @@ function renderReports() {
         options: {
             responsive: true, maintainAspectRatio: false, cutout: '70%',
             plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } }
+        }
+    });
+
+    // --- NEW: Principal Paid by Account Doughnut ---
+    if(charts.pie3) charts.pie3.destroy();
+    const ctxPie3 = document.getElementById('principalPaidChart').getContext('2d');
+    
+    // Prepare data for the new chart, filtering out accounts with 0 principal paid
+    const accPaidLabels = [];
+    const accPaidData = [];
+    Object.keys(principalPaidByAcc).forEach(accId => {
+        if(principalPaidByAcc[accId] > 0) {
+            accPaidLabels.push(ACCOUNTS_INFO[accId]?.name || accId);
+            accPaidData.push(principalPaidByAcc[accId]);
+        }
+    });
+
+    charts.pie3 = new Chart(ctxPie3, {
+        type: 'doughnut',
+        data: {
+            labels: accPaidLabels,
+            datasets: [{
+                data: accPaidData,
+                backgroundColor: ['#34D399', '#38BDF8', '#EC4899', '#FBBF24'], // Green, Blue, Pink, Gold
+                borderWidth: 0, hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '70%',
+            plugins: { 
+                legend: { position: 'right', labels: { boxWidth: 12 } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ' ' + Number(context.raw).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' บ.';
+                        }
+                    }
+                }
+            }
         }
     });
 
