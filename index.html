@@ -334,17 +334,17 @@
       
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
         <div class="form-group">
-          <label>เงินต้น (หักอัตโนมัติ)</label>
-          <input type="number" id="f_principal" readonly style="color:var(--accent-green); background:rgba(255,255,255,0.02);"/>
+          <label>เงินต้น (แก้ไขได้)</label>
+          <input type="number" id="f_principal" oninput="onPrincipalChange()" style="color:var(--accent-green); font-weight:600; font-family:'IBM Plex Mono';"/>
         </div>
         <div class="form-group">
           <label>ดอกเบี้ย (<span id="daysHint">0 วัน</span>)</label>
-          <input type="number" id="f_interest" readonly style="color:var(--text-muted); background:rgba(255,255,255,0.02);"/>
+          <input type="number" id="f_interest" oninput="onInterestChange()" style="color:#FBBF24; font-weight:600; font-family:'IBM Plex Mono';"/>
         </div>
       </div>
       
       <div class="form-group">
-        <label>ยอดคงเหลือหลังชำระ</label>
+        <label>ยอดคงเหลือหลังชำระ (อัปเดตอัตโนมัติ)</label>
         <input type="text" id="f_remaining" readonly style="font-family:'IBM Plex Mono'; background:rgba(255,255,255,0.02);"/>
       </div>
       
@@ -639,7 +639,6 @@ function renderDashboard(s) {
     const el = document.getElementById('summaryArea');
     const rank = calculateRank(s.progressPercent);
     
-    // สร้าง HTML สำหรับรายละเอียดการผ่อนรายบัญชี
     let accountDetailsHtml = '';
     appState.accounts.forEach(a => {
         if(a.balance <= 0) return;
@@ -694,7 +693,7 @@ function renderDashboard(s) {
         </div>
       </div>
       
-      <!-- Account Time Details (NEW) -->
+      <!-- Account Time Details -->
       <div class="luxe-card" style="margin-bottom: 20px;">
         <div class="card-label" style="color:#fff; margin-bottom:4px;">รายละเอียดและระยะเวลาผ่อนชำระ</div>
         <div class="card-sub" style="margin-bottom:16px;">คำนวณจากยอดหนี้ปัจจุบัน, อัตราดอกเบี้ย และการจ่ายขั้นต่ำ</div>
@@ -748,7 +747,6 @@ function renderDashboard(s) {
       </div>
     `;
     
-    // Initialize Dashboard Account Chart
     if(charts.dashPie) charts.dashPie.destroy();
     const ctxDash = document.getElementById('dashAccountChart').getContext('2d');
     const accData = appState.accounts.filter(a => a.balance > 0);
@@ -758,7 +756,7 @@ function renderDashboard(s) {
             labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
             datasets: [{
                 data: accData.map(a => a.balance),
-                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], // Blue, Gold, Pink (MRTA)
+                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'],
                 borderWidth: 0, hoverOffset: 4
             }]
         },
@@ -890,12 +888,45 @@ function calcFields() {
   
   const interest = parseFloat((balance * (rate / 100) * (days / 365)).toFixed(2));
   const principal= parseFloat((total - interest).toFixed(2));
-  const remaining= parseFloat((balance - Math.max(0, principal)).toFixed(2));
 
-  document.getElementById('f_interest').value  = interest > 0 ? interest : '';
-  document.getElementById('f_principal').value = principal > 0 ? principal : '';
-  document.getElementById('f_remaining').value = remaining > 0 ? fmt(remaining) : '';
+  document.getElementById('f_interest').value  = interest > 0 ? interest.toFixed(2) : '';
+  document.getElementById('f_principal').value = principal > 0 ? principal.toFixed(2) : '';
   document.getElementById('daysHint').textContent = days + ' วัน';
+  
+  updateRemainingUI();
+}
+
+// ฟังก์ชันเมื่อผู้ใช้แก้ไข "เงินต้น" ด้วยตัวเอง
+function onPrincipalChange() {
+    const total = parseFloat(document.getElementById('f_total').value) || 0;
+    const principal = parseFloat(document.getElementById('f_principal').value) || 0;
+    const interest = Math.max(0, total - principal);
+    
+    document.getElementById('f_interest').value = interest > 0 ? interest.toFixed(2) : '';
+    updateRemainingUI();
+}
+
+// ฟังก์ชันเมื่อผู้ใช้แก้ไข "ดอกเบี้ย" ด้วยตัวเอง
+function onInterestChange() {
+    const total = parseFloat(document.getElementById('f_total').value) || 0;
+    const interest = parseFloat(document.getElementById('f_interest').value) || 0;
+    const principal = Math.max(0, total - interest);
+    
+    document.getElementById('f_principal').value = principal > 0 ? principal.toFixed(2) : '';
+    updateRemainingUI();
+}
+
+// อัปเดตยอดคงเหลือหลังจากกรอกหรือแก้ไขข้อมูล
+function updateRemainingUI() {
+    const sel = document.getElementById('f_account');
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.dataset.balance) return;
+    
+    const balance = parseFloat(opt.dataset.balance) || 0;
+    const principal = parseFloat(document.getElementById('f_principal').value) || 0;
+    const remaining = parseFloat((balance - Math.max(0, principal)).toFixed(2));
+    
+    document.getElementById('f_remaining').value = remaining > 0 ? fmt(remaining) : '';
 }
 
 async function submitPayment() {
@@ -1046,7 +1077,7 @@ function renderReports() {
     `;
 
     // --- B. Render Yearly Summary Table ---
-    const years = Object.keys(yearlyStats).sort((a,b) => b - a); // Sort desc
+    const years = Object.keys(yearlyStats).sort((a,b) => b - a); 
     let tableHtml = `
         <div class="card-label" style="color:#fff;">📅 ตารางสรุปรายรับ-จ่ายรายปี</div>
         <div class="card-sub" style="margin-bottom:16px;">ยอดสรุปการจ่ายเงินต้นและดอกเบี้ยแบ่งตามปี ค.ศ.</div>
@@ -1130,7 +1161,7 @@ function renderReports() {
             labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
             datasets: [{
                 data: accData.map(a => a.balance),
-                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], // Blue, Gold, Pink (MRTA)
+                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], 
                 borderWidth: 0, hoverOffset: 4
             }]
         },
