@@ -522,6 +522,7 @@
         <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn btn-gold" onclick="saveEdit()" id="btnSaveEdit">บันทึก</button>
             <button class="btn btn-outline" onclick="closeEditModal()">ยกเลิก</button>
+            <button class="btn btn-outline" onclick="deletePayment()" id="btnDelete" style="color:var(--accent-red); border-color:var(--accent-red);">ลบ</button>
         </div>
     </div>
 </div>
@@ -616,7 +617,16 @@ function showPage(name, navBtn, title) {
 // =============================================
 //  API COMMUNICATION (FETCH)
 // =============================================
-const WRITE_ACTIONS = ['addPayment', 'editPayment', 'updateRate'];
+const WRITE_ACTIONS = ['addPayment', 'editPayment', 'deletePayment', 'updateRate'];
+
+// รหัสคำขอ: ถ้ากดบันทึกข้อมูลชุดเดิมซ้ำหลังล้มเหลว จะส่งรหัสเดิม ฝั่ง Server จะไม่บันทึกซ้ำ
+const pendingReq = {};
+function reqIdFor(prm) {
+  const key = JSON.stringify(prm);
+  if (!pendingReq[key]) pendingReq[key] = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  return pendingReq[key];
+}
+function clearReqId(prm) { delete pendingReq[JSON.stringify(prm)]; }
 
 // แปลง Date เป็น yyyy-mm-dd ตามเวลาเครื่อง (ไม่ใช้ toISOString เพราะเป็นเวลา UTC ทำให้วันที่เลื่อนไป 1 วันในไทย)
 function toLocalDateStr(d) {
@@ -692,6 +702,9 @@ async function callGAS(params, { timeoutMs } = {}) {
   try { data = JSON.parse(trimmed); }
   catch(e) { throw new Error('Server ตอบกลับข้อมูลที่ไม่ใช่ JSON: ' + trimmed.slice(0, 120)); }
   if (!data || !data.ok) throw new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server');
+  if (isWrite && data.message === 'TTB Mortgage Tracker API ready') {
+    throw new Error('Server ยังเป็นเวอร์ชันเก่าที่ไม่รู้จักคำสั่ง "' + params.action + '" กรุณา Deploy โค้ดใน gas/Code.gs เป็น New version');
+  }
   return data;
 }
 
@@ -1050,7 +1063,8 @@ function calcFields() {
   let days = Math.round((currDate - lastDate) / (1000 * 60 * 60 * 24));
   if (days < 0) days = 0;
   
-  const interest = parseFloat((balance * (rate / 100) * (days / 365)).toFixed(2));
+  // ถ้าดอกเบี้ยค้างมากกว่ายอดที่จ่าย ให้ยอดทั้งหมดเป็นดอกเบี้ย (เดิมเงินต้นติดลบทำให้ยอดหนี้เพิ่มขึ้น)
+  const interest = Math.min(total, parseFloat((balance * (rate / 100) * (days / 365)).toFixed(2)));
   const principal= parseFloat((total - interest).toFixed(2));
 
   document.getElementById('f_interest').value  = interest > 0 ? interest.toFixed(2) : '';
@@ -1127,13 +1141,15 @@ async function submitPayment(btn) {
     setTimeout(() => { document.querySelector('.nav-item').click(); }, 1000);
   };
 
+  const reqId = reqIdFor(prm);
   try {
-    await callGAS(prm);
-    onSaved('บันทึกสำเร็จ!');
+    const res = await callGAS({ ...prm, reqId });
+    clearReqId(prm);
+    onSaved(res.duplicate ? 'รายการนี้ถูกบันทึกไปแล้ว (ไม่บันทึกซ้ำ)' : 'บันทึกสำเร็จ!');
   } catch(e) {
     if (e.uncertain) {
       btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังตรวจสอบ...';
-      if (await paymentExists(prm, knownIds)) { onSaved('บันทึกสำเร็จ (ตรวจสอบแล้วว่ามีในระบบ)'); return; }
+      if (await paymentExists(prm, knownIds)) { clearReqId(prm); onSaved('บันทึกสำเร็จ (ตรวจสอบแล้วว่ามีในระบบ)'); return; }
     }
     toast('บันทึกไม่สำเร็จ: ' + e.message, 'error');
   } finally {
@@ -1254,13 +1270,39 @@ async function saveEdit() {
   btn.disabled = true;
 
   try {
-    await callGAS(prm);
+    await callGAS({ ...prm, reqId: reqIdFor(prm) });
+    clearReqId(prm);
     toast('บันทึกการแก้ไขสำเร็จ', 'success');
     closeEditModal();
     appState.summary = null; // force reload dashboard
     loadHistory(); // refresh list
   } catch(e) {
     toast('บันทึกไม่สำเร็จ: ' + e.message + (e.uncertain ? ' (กรุณาเช็คในประวัติก่อนบันทึกซ้ำ)' : ''), 'error');
+  } finally {
+    btn.innerHTML = oldTxt;
+    btn.disabled = false;
+  }
+}
+
+async function deletePayment() {
+  const id = document.getElementById('e_id').value;
+  if (!id) return;
+  if (!confirm('ลบรายการ ' + id + ' ใช่ไหม?\nยอดเงินต้นของรายการนี้จะถูกคืนกลับเข้ายอดคงเหลือ')) return;
+
+  const btn = document.getElementById('btnDelete');
+  const oldTxt = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>';
+  btn.disabled = true;
+  const prm = { action: 'deletePayment', id };
+  try {
+    await callGAS({ ...prm, reqId: reqIdFor(prm) });
+    clearReqId(prm);
+    toast('ลบรายการสำเร็จ', 'success');
+    closeEditModal();
+    appState.summary = null;
+    loadHistory();
+  } catch(e) {
+    toast('ลบไม่สำเร็จ: ' + e.message, 'error');
   } finally {
     btn.innerHTML = oldTxt;
     btn.disabled = false;
