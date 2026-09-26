@@ -56,7 +56,7 @@
     font-size: 15px;
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
-    padding-bottom: 90px;
+    padding-bottom: 170px; /* เว้นที่ให้แถบเมนูและปุ่มลอย */
     padding-top: env(safe-area-inset-top);
   }
 
@@ -187,6 +187,26 @@
   .nav-item svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   .nav-item.active { color: var(--accent-gold); }
   .nav-item.active svg { transform: translateY(-3px); filter: drop-shadow(0 2px 4px var(--accent-gold-glow)); }
+
+  /* === FLOATING ADD BUTTON === */
+  .fab-add {
+    position: fixed;
+    right: max(20px, calc(50% - 300px + 20px));
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    border: none; outline: none; cursor: pointer;
+    background: var(--accent-gold);
+    color: #0F172A;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fab-add svg { width: 30px; height: 30px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; fill: none; }
+  .fab-add:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3); }
+  .fab-add.hidden { opacity: 0; transform: scale(0.6); pointer-events: none; }
 
   /* === FORMS === */
   .form-group { margin-bottom: 16px; }
@@ -471,10 +491,6 @@
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
     ภาพรวม
   </button>
-  <button class="nav-item" onclick="showPage('add', this, 'บันทึกรายการ')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    บันทึก
-  </button>
   <button class="nav-item" onclick="showPage('history', this, 'ประวัติการทำรายการ')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     ประวัติ
@@ -488,6 +504,11 @@
     ตั้งค่า
   </button>
 </nav>
+
+<!-- ปุ่มลอยสำหรับบันทึกรายการ -->
+<button class="fab-add" id="fabAdd" aria-label="บันทึกรายการ" onclick="showPage('add', null, 'บันทึกรายการ')">
+  <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
 
 <!-- EDIT MODAL -->
 <div class="modal-overlay" id="editModal">
@@ -612,6 +633,7 @@ function showPage(name, navBtn, title) {
   document.getElementById('page-' + name).classList.add('active');
   if(navBtn) navBtn.classList.add('active');
   if(title) document.getElementById('pageTitle').textContent = title;
+  document.getElementById('fabAdd').classList.toggle('hidden', name === 'add');
 
   if (name === 'dashboard' && !appState.summary) loadDashboard();
   if (name === 'history') loadHistory();
