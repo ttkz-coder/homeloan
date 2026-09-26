@@ -534,7 +534,16 @@
 // =============================================
 //  CONFIG & STATE
 // =============================================
-let GAS_URL = (() => { try { return normalizeGasUrl(localStorage.getItem('gasUrl')); } catch(e) { return ''; } })() || 'https://script.google.com/macros/s/AKfycbyEuuCpoMdgDpjg38wMvO-mLhbkCPwKUM3DkHH9_-sdi0b90KsYhT9iZk9PT1ffEZsb/exec';
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyWrtFwR8rlNU2kTSwtOtKfSnINEgOnh_OUIXNS7l4YKgF75hNNRdISyirHUbEv3xoG/exec';
+// URL เก่าที่เคยบันทึกไว้ในเครื่อง ให้เปลี่ยนเป็น URL ใหม่อัตโนมัติ
+const OLD_GAS_URLS = ['https://script.google.com/macros/s/AKfycbyEuuCpoMdgDpjg38wMvO-mLhbkCPwKUM3DkHH9_-sdi0b90KsYhT9iZk9PT1ffEZsb/exec'];
+let GAS_URL = (() => {
+  try {
+    const saved = normalizeGasUrl(localStorage.getItem('gasUrl'));
+    if (OLD_GAS_URLS.includes(saved)) { localStorage.setItem('gasUrl', DEFAULT_GAS_URL); return DEFAULT_GAS_URL; }
+    return saved;
+  } catch(e) { return ''; }
+})() || DEFAULT_GAS_URL;
 
 const ACCOUNTS_INFO = {
   HOME:  { name: 'สินเชื่อตัวบ้าน', minPayment: 10500 },
