@@ -696,10 +696,13 @@ async function callGAS(params, { timeoutMs } = {}) {
 }
 
 // ถ้าบันทึกแล้วไม่ได้คำตอบ ให้ตรวจสอบว่ารายการถูกบันทึกลงชีตไปแล้วหรือยัง (กันบันทึกซ้ำ)
-async function paymentExists(p) {
+// นับเฉพาะแถวใหม่ที่ ID ไม่อยู่ใน knownIds (รายการที่มีอยู่ก่อนกดบันทึก) เพื่อไม่ให้ไปเจอรายการเก่าที่ยอดเท่ากัน
+async function paymentExists(p, knownIds) {
+  if (!knownIds || !knownIds.size) return false;
   try {
     const data = await callGAS({ action: 'getPayments', accountId: p.accountId });
     return (data.payments || []).some(r =>
+      !knownIds.has(String(r.id)) &&
       r.accountId === p.accountId &&
       normalizeDateStr(r.date) === p.date &&
       Math.abs((parseFloat(r.total) || 0) - (parseFloat(p.total) || 0)) < 0.005 &&
@@ -1111,6 +1114,7 @@ async function submitPayment(btn) {
   prm.total = toAmountStr(rawTotal);
 
   btn = btn || document.querySelector('#page-add .btn-gold');
+  const knownIds = new Set(appState.payments.map(r => String(r.id)));
   const oldTxt = btn.innerHTML;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังบันทึก...';
   btn.disabled = true;
@@ -1129,7 +1133,7 @@ async function submitPayment(btn) {
   } catch(e) {
     if (e.uncertain) {
       btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังตรวจสอบ...';
-      if (await paymentExists(prm)) { onSaved('บันทึกสำเร็จ (ตรวจสอบแล้วว่ามีในระบบ)'); return; }
+      if (await paymentExists(prm, knownIds)) { onSaved('บันทึกสำเร็จ (ตรวจสอบแล้วว่ามีในระบบ)'); return; }
     }
     toast('บันทึกไม่สำเร็จ: ' + e.message, 'error');
   } finally {
