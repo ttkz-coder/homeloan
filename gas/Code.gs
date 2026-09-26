@@ -158,7 +158,11 @@ function nextPaymentId_(paySheet) {
       if (m) max = Math.max(max, parseInt(m[1], 10));
     });
   }
-  return 'PAY' + String(max + 1).padStart(5, '0');
+  // จำเลขล่าสุดไว้ด้วย กันการนำ ID ของรายการที่ถูกลบไปแล้วกลับมาใช้ซ้ำ
+  const props = PropertiesService.getScriptProperties();
+  const next  = Math.max(max, parseInt(props.getProperty('lastPaymentNo') || '0', 10)) + 1;
+  props.setProperty('lastPaymentNo', String(next));
+  return 'PAY' + String(next).padStart(5, '0');
 }
 
 function findAccountRow_(accData, accountId) {
@@ -412,6 +416,12 @@ function deletePayment(params) {
   if (accRow >= 0) {
     accSheet.getRange(accRow+1, 4).setValue(round2_(num_(accData[accRow][3]) + principal));
   }
+
+  // จำเลข ID ที่สูงสุดไว้ก่อนลบ เพื่อไม่ให้รายการใหม่ได้ ID ซ้ำกับที่ลบไป
+  const props = PropertiesService.getScriptProperties();
+  let maxNo = parseInt(props.getProperty('lastPaymentNo') || '0', 10);
+  data.slice(1).forEach(r => { const m = String(r[0]).match(/^PAY(\d+)$/); if (m) maxNo = Math.max(maxNo, parseInt(m[1], 10)); });
+  props.setProperty('lastPaymentNo', String(maxNo));
 
   paySheet.deleteRow(rowIdx+1);
   safeRefreshSummary_();
