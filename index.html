@@ -373,7 +373,7 @@
         <input type="text" id="f_note" placeholder="เช่น โปะเพิ่มโบนัส..."/>
       </div>
       
-      <button class="btn btn-gold" style="margin-top:10px;" onclick="submitPayment()">บันทึกรายการ</button>
+      <button class="btn btn-gold" style="margin-top:10px;" onclick="submitPayment(this)">บันทึกรายการ</button>
     </div>
   </div>
 
@@ -533,7 +533,7 @@
 // =============================================
 //  CONFIG & STATE
 // =============================================
-let GAS_URL = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbyEuuCpoMdgDpjg38wMvO-mLhbkCPwKUM3DkHH9_-sdi0b90KsYhT9iZk9PT1ffEZsb/exec';
+let GAS_URL = (() => { try { return normalizeGasUrl(localStorage.getItem('gasUrl')); } catch(e) { return ''; } })() || 'https://script.google.com/macros/s/AKfycbyEuuCpoMdgDpjg38wMvO-mLhbkCPwKUM3DkHH9_-sdi0b90KsYhT9iZk9PT1ffEZsb/exec';
 
 const ACCOUNTS_INFO = {
   HOME:  { name: 'สินเชื่อตัวบ้าน', minPayment: 10500 },
@@ -616,28 +616,96 @@ function showPage(name, navBtn, title) {
 // =============================================
 //  API COMMUNICATION (FETCH)
 // =============================================
-async function callGAS(params) {
-  if (!GAS_URL) throw new Error('ยังไม่ได้ตั้งค่า GAS URL');
-  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-  
-  try {
-      const response = await fetch(url, { method: 'GET', mode: 'cors' });
-      const text = await response.text();
-      
-      if (text.includes('<html') || text.includes('<!DOCTYPE html>')) {
-          throw new Error('Google ขอให้ยืนยันตัวตน (กดทดสอบในหน้าตั้งค่าเพื่อแก้ไข)');
-      }
-      
-      const data = JSON.parse(text);
-      if (!data || !data.ok) throw new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server');
-      return data;
-      
-  } catch(e) {
-      if(e.message.includes('Unexpected token') || e.message.includes('JSON')) {
-          throw new Error('Google ส่งหน้าเพจผิดปกติกลับมา (กดทดสอบในหน้าตั้งค่าเพื่อแก้ไข)');
-      }
-      throw e;
+const WRITE_ACTIONS = ['addPayment', 'editPayment', 'updateRate'];
+
+// แปลง Date เป็น yyyy-mm-dd ตามเวลาเครื่อง (ไม่ใช้ toISOString เพราะเป็นเวลา UTC ทำให้วันที่เลื่อนไป 1 วันในไทย)
+function toLocalDateStr(d) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(dt)) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+}
+
+// วันที่จาก Server อาจเป็น "2026-08-27" หรือ ISO แบบ UTC "2026-08-26T17:00:00.000Z"
+function normalizeDateStr(v) {
+  if (!v) return '';
+  const str = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  return toLocalDateStr(str);
+}
+
+const escapeHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ดึงข้อความ error จริงจากหน้า HTML ที่ Google ส่งกลับมา
+function describeHtmlResponse(html) {
+  if (/accounts\.google\.com|ServiceLogin|signin/i.test(html)) {
+    return 'Google ขอให้ล็อกอิน: ตอน Deploy ต้องตั้ง "Execute as: Me" และ "Who has access: Anyone" แล้วใช้ URL ที่ลงท้ายด้วย /exec';
   }
+  const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
+                   .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const m = text.match(/(?:Exception|Error|TypeError|ReferenceError|ไม่พบฟังก์ชัน|Script function not found)[^.]{0,200}/i);
+  return 'สคริปต์ฝั่ง Google เกิดข้อผิดพลาด: ' + (m ? m[0] : text.slice(0, 200) || 'ไม่ทราบสาเหตุ');
+}
+
+function normalizeGasUrl(raw) {
+  let u = (raw || '').trim();
+  if (!u) return '';
+  u = u.split('?')[0].split('#')[0].replace(/\/+$/, '');
+  return u;
+}
+
+async function callGAS(params, { timeoutMs } = {}) {
+  if (!GAS_URL) throw new Error('ยังไม่ได้ตั้งค่า GAS URL');
+  const isWrite = WRITE_ACTIONS.includes(params.action);
+  const url = GAS_URL + '?' + new URLSearchParams({ ...params, _t: Date.now() }).toString();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || (isWrite ? 60000 : 30000));
+
+  let text;
+  try {
+      const response = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-store', signal: controller.signal });
+      text = await response.text();
+      if (!response.ok && !text.trim().startsWith('{')) {
+          throw new Error(`Server ตอบกลับ HTTP ${response.status}`);
+      }
+  } catch(e) {
+      const err = new Error(
+        e.name === 'AbortError'
+          ? 'หมดเวลารอการตอบกลับจาก Google (Server ช้าหรือเน็ตไม่เสถียร)'
+          : (e.message.startsWith('Server ตอบกลับ') ? e.message
+             : 'เชื่อมต่อ Google ไม่ได้ (เน็ตหลุด หรือสคริปต์ฝั่ง Google error/ยังไม่ได้ Deploy ให้ Anyone เข้าถึง)')
+      );
+      err.uncertain = true; // คำขออาจไปถึง Server แล้วแต่ไม่ได้รับคำตอบ
+      throw err;
+  } finally {
+      clearTimeout(timer);
+  }
+
+  const trimmed = text.trim();
+  if (/^<!doctype html|^<html/i.test(trimmed)) {
+      const err = new Error(describeHtmlResponse(trimmed));
+      err.uncertain = isWrite;
+      throw err;
+  }
+
+  let data;
+  try { data = JSON.parse(trimmed); }
+  catch(e) { throw new Error('Server ตอบกลับข้อมูลที่ไม่ใช่ JSON: ' + trimmed.slice(0, 120)); }
+  if (!data || !data.ok) throw new Error(data?.error || 'เกิดข้อผิดพลาดจาก Server');
+  return data;
+}
+
+// ถ้าบันทึกแล้วไม่ได้คำตอบ ให้ตรวจสอบว่ารายการถูกบันทึกลงชีตไปแล้วหรือยัง (กันบันทึกซ้ำ)
+async function paymentExists(p) {
+  try {
+    const data = await callGAS({ action: 'getPayments', accountId: p.accountId });
+    return (data.payments || []).some(r =>
+      r.accountId === p.accountId &&
+      normalizeDateStr(r.date) === p.date &&
+      Math.abs((parseFloat(r.total) || 0) - (parseFloat(p.total) || 0)) < 0.005 &&
+      String(r.note || '') === String(p.note || '')
+    );
+  } catch(e) { return false; }
 }
 
 function updateConnectionUI(status, isError=false) {
@@ -933,7 +1001,7 @@ async function refreshAddForm() {
   });
   
   if (!document.getElementById('f_date').value) {
-      document.getElementById('f_date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('f_date').value = toLocalDateStr(new Date());
   }
 }
 
@@ -1019,50 +1087,62 @@ function updateRemainingUI() {
     document.getElementById('f_remaining').value = remaining > 0 ? fmt(remaining) : '';
 }
 
-async function submitPayment() {
+function toAmountStr(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? '0' : n.toFixed(2);
+}
+
+let submitting = false;
+async function submitPayment(btn) {
+  if (submitting) return;
+  const rawTotal = document.getElementById('f_total').value;
   const prm = {
       action: 'addPayment',
       accountId: document.getElementById('f_account').value,
       date: document.getElementById('f_date').value,
-      total: document.getElementById('f_total').value,
-      interest: document.getElementById('f_interest').value,
-      principal: document.getElementById('f_principal').value,
-      note: document.getElementById('f_note').value
+      total: rawTotal,
+      interest: toAmountStr(document.getElementById('f_interest').value),
+      principal: toAmountStr(document.getElementById('f_principal').value),
+      note: document.getElementById('f_note').value.trim()
   };
 
-  if (!prm.accountId || !prm.date || !prm.total) { toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+  if (!prm.accountId || !prm.date || !rawTotal) { toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+  if (!(parseFloat(rawTotal) > 0)) { toast('ยอดชำระต้องมากกว่า 0', 'error'); return; }
+  prm.total = toAmountStr(rawTotal);
 
-  const btn = event.target;
+  btn = btn || document.querySelector('#page-add .btn-gold');
   const oldTxt = btn.innerHTML;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังบันทึก...';
   btn.disabled = true;
+  submitting = true;
+
+  const onSaved = (msg) => {
+    toast(msg, 'success');
+    appState.summary = null;
+    ['f_total','f_interest','f_principal','f_remaining','f_note'].forEach(id => document.getElementById(id).value = '');
+    setTimeout(() => { document.querySelector('.nav-item').click(); }, 1000);
+  };
 
   try {
     await callGAS(prm);
-    toast('บันทึกสำเร็จ!', 'success');
-    appState.summary = null; 
-    
-    document.getElementById('f_total').value = '';
-    document.getElementById('f_interest').value = '';
-    document.getElementById('f_principal').value = '';
-    document.getElementById('f_remaining').value = '';
-    document.getElementById('f_note').value = '';
-    
-    setTimeout(() => {
-        document.querySelector('.nav-item').click(); 
-    }, 1000);
-    
+    onSaved('บันทึกสำเร็จ!');
   } catch(e) {
-    toast(e.message, 'error');
+    if (e.uncertain) {
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> กำลังตรวจสอบ...';
+      if (await paymentExists(prm)) { onSaved('บันทึกสำเร็จ (ตรวจสอบแล้วว่ามีในระบบ)'); return; }
+    }
+    toast('บันทึกไม่สำเร็จ: ' + e.message, 'error');
   } finally {
     btn.innerHTML = oldTxt;
     btn.disabled = false;
+    submitting = false;
   }
 }
 
 // =============================================
 //  HISTORY & EDITING
 // =============================================
+let historyRows = [];
 async function loadHistory() {
   const el = document.getElementById('historyArea');
   const selAcc = document.getElementById('hist_account');
@@ -1084,6 +1164,7 @@ async function loadHistory() {
     if (accountId) params.accountId = accountId;
     const data = await callGAS(params);
     let rows = data.payments || [];
+    historyRows = rows;
     
     if(!accountId) appState.payments = rows; 
 
@@ -1092,11 +1173,11 @@ async function loadHistory() {
       return;
     }
 
-    el.innerHTML = `<div class="history-list">` + rows.map(r => `
+    el.innerHTML = `<div class="history-list">` + rows.map((r, i) => `
       <div class="hist-row">
         <div class="hist-main">
             <div class="hist-left">
-                <span class="badge-acc badge-${r.accountId}">${r.accountId}</span>
+                <span class="badge-acc badge-${escapeHtml(r.accountId)}">${escapeHtml(r.accountId)}</span>
                 <span class="hist-date">${fmtDate(r.date)}</span>
             </div>
             <div class="hist-right">
@@ -1104,9 +1185,9 @@ async function loadHistory() {
                 <span class="hist-detail">ต้น ${fmt(r.principal)} | ดบ. ${fmt(r.interest)}</span>
             </div>
         </div>
-        ${r.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${r.note}</div>` : ''}
+        ${r.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(r.note)}</div>` : ''}
         <div class="hist-actions">
-            <button class="btn btn-outline btn-sm" style="padding:4px 10px; font-size:11px;" onclick='openEditModal(${JSON.stringify(r)})'>✎ แก้ไข</button>
+            <button class="btn btn-outline btn-sm" style="padding:4px 10px; font-size:11px;" onclick="openEditModal(historyRows[${i}])">✎ แก้ไข</button>
         </div>
       </div>
     `).join('') + `</div>`;
@@ -1120,7 +1201,7 @@ async function loadHistory() {
 function openEditModal(paymentObj) {
     document.getElementById('e_id').value = paymentObj.id;
     document.getElementById('e_account').value = paymentObj.accountId;
-    document.getElementById('e_date').value = paymentObj.date.split('T')[0];
+    document.getElementById('e_date').value = normalizeDateStr(paymentObj.date);
     document.getElementById('e_total').value = paymentObj.total;
     document.getElementById('e_principal').value = paymentObj.principal;
     document.getElementById('e_interest').value = paymentObj.interest;
@@ -1154,12 +1235,14 @@ async function saveEdit() {
       accountId: document.getElementById('e_account').value,
       date: document.getElementById('e_date').value,
       total: document.getElementById('e_total').value,
-      interest: document.getElementById('e_interest').value,
-      principal: document.getElementById('e_principal').value,
-      note: document.getElementById('e_note').value
+      interest: toAmountStr(document.getElementById('e_interest').value),
+      principal: toAmountStr(document.getElementById('e_principal').value),
+      note: document.getElementById('e_note').value.trim()
   };
 
   if (!prm.id || !prm.date || !prm.total) { toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
+  if (!(parseFloat(prm.total) > 0)) { toast('ยอดชำระต้องมากกว่า 0', 'error'); return; }
+  prm.total = toAmountStr(prm.total);
 
   const btn = document.getElementById('btnSaveEdit');
   const oldTxt = btn.innerHTML;
@@ -1173,7 +1256,7 @@ async function saveEdit() {
     appState.summary = null; // force reload dashboard
     loadHistory(); // refresh list
   } catch(e) {
-    toast(e.message, 'error');
+    toast('บันทึกไม่สำเร็จ: ' + e.message + (e.uncertain ? ' (กรุณาเช็คในประวัติก่อนบันทึกซ้ำ)' : ''), 'error');
   } finally {
     btn.innerHTML = oldTxt;
     btn.disabled = false;
@@ -1397,7 +1480,7 @@ function renderRateSettings() {
             <div style="display:flex; align-items:center; gap:8px;">
                 <input type="number" id="rate_${a.id}" value="${a.rate}" step="0.01" style="width:80px; padding:8px; text-align:center;">
                 <span style="color:var(--text-secondary);">%</span>
-                <button class="btn btn-sm btn-outline" onclick="saveRate('${a.id}')">บันทึก</button>
+                <button class="btn btn-sm btn-outline" onclick="saveRate('${a.id}', this)">บันทึก</button>
             </div>
         </div>`;
     });
@@ -1405,8 +1488,16 @@ function renderRateSettings() {
 }
 
 function saveSettings() {
-  GAS_URL = document.getElementById('set_gasUrl').value.trim();
-  localStorage.setItem('gasUrl', GAS_URL);
+  const url = normalizeGasUrl(document.getElementById('set_gasUrl').value);
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
+    toast(url.endsWith('/dev')
+      ? 'URL ที่ลงท้ายด้วย /dev ใช้ได้เฉพาะเจ้าของสคริปต์ กรุณาใช้ URL ที่ลงท้ายด้วย /exec'
+      : 'URL ไม่ถูกต้อง ต้องเป็น https://script.google.com/.../exec', 'error');
+    return;
+  }
+  GAS_URL = url;
+  document.getElementById('set_gasUrl').value = url;
+  try { localStorage.setItem('gasUrl', GAS_URL); } catch(e) {}
   toast('บันทึก URL สำเร็จ ลองกดปุ่ม "ทดสอบ"', 'success');
 }
 
@@ -1426,20 +1517,20 @@ async function testConnection() {
     document.getElementById('settingsResult').innerHTML = 
     `<div style="color:var(--accent-red); padding:12px; background:rgba(239, 68, 68, 0.1); border-radius:8px; font-size:13px; line-height:1.6; margin-top: 10px;">
         ❌ <strong>พบปัญหาการเชื่อมต่อ</strong><br>
-        <span style="opacity:0.9;">${e.message}</span>
+        <span style="opacity:0.9;">${escapeHtml(e.message)}</span>
         <br><br>
         <strong style="color:#fff;">วิธีแก้ไข:</strong><br>
-        1. <a href="${GAS_URL}?action=getSettings" target="_blank" style="color:var(--accent-blue); text-decoration:underline;">คลิกที่นี่เพื่อเปิดหน้ายืนยันสิทธิ์</a><br>
-        2. กดล็อกอินและ Allow สิทธิ์ให้ Google Apps Script<br>
-        3. กลับมาที่หน้านี้แล้วกด "ทดสอบ" อีกครั้ง
+        1. <a href="${escapeHtml(GAS_URL)}?action=getSettings" target="_blank" style="color:var(--accent-blue); text-decoration:underline;">คลิกที่นี่เพื่อเปิดหน้ายืนยันสิทธิ์</a><br>
+        2. ถ้าเห็นข้อความ error ให้แก้โค้ดฝั่ง Apps Script แล้ว Deploy &gt; Manage deployments &gt; Edit &gt; New version<br>
+        3. ตรวจว่า Deploy แบบ Execute as: Me และ Who has access: Anyone<br>
+        4. กลับมาที่หน้านี้แล้วกด "ทดสอบ" อีกครั้ง
     </div>`;
   }
 }
 
-async function saveRate(accountId) {
+async function saveRate(accountId, btn) {
   const rate = document.getElementById('rate_' + accountId).value;
-  if (!rate) return;
-  const btn = event.target;
+  if (!rate || isNaN(parseFloat(rate)) || parseFloat(rate) < 0) { toast('อัตราดอกเบี้ยไม่ถูกต้อง', 'error'); return; }
   const oldText = btn.textContent;
   btn.textContent = '...'; btn.disabled = true;
   
