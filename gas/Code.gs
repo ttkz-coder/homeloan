@@ -70,6 +70,7 @@ function route_(action, params) {
     case 'getAccounts':     return getAccounts();
     case 'getPayments':     return getPayments(params);
     case 'getSummary':      return getSummary();
+    case 'getAll':          return getAll();
     case 'getAmortize':     return getAmortize(params);
     case 'addPayment':      return addPayment(params);
     case 'editPayment':     return editPayment(params);
@@ -78,7 +79,7 @@ function route_(action, params) {
     case 'getSettings':     return getSettings();
     case 'init':            return initSheets();
     case '':
-      return { ok: true, message: 'TTB Mortgage Tracker API ready', version: '1.1' };
+      return { ok: true, message: 'TTB Mortgage Tracker API ready', version: '1.2' };
     default:
       // เดิมตอบ ok:true ทำให้หน้าเว็บคิดว่าบันทึกสำเร็จทั้งที่ไม่ได้ทำอะไร
       throw new Error('ไม่รู้จักคำสั่ง: ' + action + ' (อาจยังไม่ได้ Deploy เวอร์ชันใหม่)');
@@ -456,7 +457,7 @@ function getSettings() {
     firstPayment:  Utilities.formatDate(FIRST_PAYMENT,  TZ, 'yyyy-MM-dd'),
     defaultRate:   DEFAULT_RATE,
     bank:          'TTB',
-    version:       '1.1'
+    version:       '1.2'
   };
 }
 
@@ -505,8 +506,22 @@ function getAmortize(params) {
 //  getSummary
 // ============================================================
 function getSummary() {
-  const accRes  = getAccounts();
-  const payRes  = getPayments({});
+  return getSummaryFrom_(getAccounts(), getPayments({}));
+}
+
+// ============================================================
+//  getAll — บัญชี + สรุป + รายการชำระ ในคำขอเดียว
+//  (หน้าเว็บเดิมยิง getSummary + getPayments พร้อมกัน = รันสคริปต์ 2 ครั้ง
+//   และอ่านชีตรายการชำระซ้ำ 2 รอบ ทำให้เปิดแอปช้าจนหมดเวลา)
+// ============================================================
+function getAll() {
+  const accRes = getAccounts();
+  const payRes = getPayments({});
+  const sumRes = getSummaryFrom_(accRes, payRes);
+  return { ok: true, accounts: sumRes.accounts, summary: sumRes.summary, payments: payRes.payments };
+}
+
+function getSummaryFrom_(accRes, payRes) {
 
   // ใช้ num_ ทุกจุด: ถ้ามีช่องว่าง/ข้อความในชีต ของเดิมจะกลายเป็นการต่อ string แล้ว toFixed พัง
   const totalOriginal  = accRes.accounts.reduce((s,a) => s + a.originalBalance, 0);

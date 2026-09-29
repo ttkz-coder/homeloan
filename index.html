@@ -404,7 +404,7 @@
         <select id="hist_account" onchange="loadHistory()" style="flex:1;">
           <option value="">ทุกบัญชี</option>
         </select>
-        <button class="btn btn-outline" style="width:auto; padding:14px;" onclick="loadHistory()">🔄</button>
+        <button class="btn btn-outline" style="width:auto; padding:14px;" onclick="loadHistory(true)">🔄</button>
       </div>
       <div id="historyArea">
         <div class="loading-box"><div class="spinner"></div>กำลังโหลดประวัติ...</div>
@@ -783,32 +783,90 @@ function calculateNPER(ratePerPeriod, pmt, pv) {
     return Math.log(pmt / val) / Math.log(1 + ratePerPeriod);
 }
 
-// โหลดบัญชี+รายการชำระครั้งเดียว ถ้ามีการโหลดค้างอยู่ให้ใช้ผลเดียวกัน (กันยิงซ้อน)
+// อ่านข้อมูล: ถ้าหมดเวลา/เน็ตหลุด ให้ลองใหม่อัตโนมัติ (Apps Script มักช้าตอนถูกปลุกครั้งแรก)
+async function readGAS(params, attempts = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      return await callGAS(params, { timeoutMs: 25000 });
+    } catch(e) {
+      if (!e.uncertain || i >= attempts) throw e;
+      updateConnectionUI(`กำลังลองใหม่ (${i + 1}/${attempts})...`);
+      await new Promise(r => setTimeout(r, 1500 * i));
+    }
+  }
+}
+
+const DATA_CACHE_KEY = 'homeloanData';
+function applyData(d, stale) {
+  appState.accounts = d.accounts || [];
+  appState.summary = d.summary;
+  appState.payments = d.payments || [];
+  appState.stale = !!stale;
+  appState.loadedAt = d.savedAt || Date.now();
+  if (appState.accounts.length > 0) {
+      appState.avgRate = appState.accounts.reduce((acc, curr) => acc + rateOf(curr), 0) / appState.accounts.length;
+  }
+}
+function loadCachedData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(DATA_CACHE_KEY) || 'null');
+    return (d && d.summary && d.url === GAS_URL) ? d : null;
+  } catch(e) { return null; }
+}
+function saveCachedData() {
+  try {
+    localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+      url: GAS_URL, savedAt: appState.loadedAt,
+      accounts: appState.accounts, summary: appState.summary, payments: appState.payments
+    }));
+  } catch(e) {}
+}
+const fmtTime = t => new Date(t).toLocaleString('th-TH', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+
+// โหลดบัญชี+สรุป+รายการชำระในคำขอเดียว ถ้ามีการโหลดค้างอยู่ให้ใช้ผลเดียวกัน (กันยิงซ้อน)
 let dataPromise = null;
 function fetchData() {
   if (!dataPromise) {
-    dataPromise = Promise.all([
-        callGAS({ action: 'getSummary' }),
-        callGAS({ action: 'getPayments' })
-    ]).then(([sumRes, payRes]) => {
-        appState.accounts = sumRes.accounts || [];
-        appState.summary = sumRes.summary;
-        appState.payments = payRes.payments || [];
-        if (appState.accounts.length > 0) {
-            appState.avgRate = appState.accounts.reduce((acc, curr) => acc + rateOf(curr), 0) / appState.accounts.length;
-        }
-    }).finally(() => { dataPromise = null; });
+    dataPromise = (async () => {
+      let d;
+      try {
+        d = await readGAS({ action: 'getAll' });
+        if (!d.summary || !d.accounts) d = null;          // Server เวอร์ชันเก่าไม่รู้จัก getAll
+      } catch(e) {
+        if (!/ไม่รู้จักคำสั่ง/.test(e.message)) throw e;
+        d = null;
+      }
+      if (!d) {
+        const [sumRes, payRes] = await Promise.all([ readGAS({ action: 'getSummary' }), readGAS({ action: 'getPayments' }) ]);
+        d = { accounts: sumRes.accounts, summary: sumRes.summary, payments: payRes.payments };
+      }
+      applyData({ ...d, savedAt: Date.now() }, false);
+      saveCachedData();
+    })().finally(() => { dataPromise = null; });
   }
   return dataPromise;
 }
 
-// ใช้ก่อนหน้าที่ต้องใช้ยอดคงเหลือ/รายการล่าสุด: ถ้าข้อมูลถูกล้างหลังบันทึก ให้โหลดใหม่ก่อน
-// (เดิมหน้าเพิ่มรายการ/รายงานใช้ยอดเก่า ทำให้คำนวณดอกเบี้ยผิด)
-async function ensureData() {
-  if (!appState.summary) await fetchData();
+// ใช้ก่อนหน้าที่ต้องใช้ยอดคงเหลือ/รายการล่าสุด: ถ้าข้อมูลถูกล้างหลังบันทึก หรือยังเป็นข้อมูลเก่าจากเครื่อง ให้โหลดใหม่ก่อน
+// allowStale: ถ้าโหลดไม่สำเร็จ ยอมใช้ข้อมูลเก่าที่มีอยู่ (ใช้กับหน้าที่แค่แสดงผล)
+async function ensureData({ allowStale = false } = {}) {
+  if (appState.summary && !appState.stale) return;
+  try {
+    await fetchData();
+  } catch(e) {
+    if (allowStale && appState.summary) {
+      toast('ใช้ข้อมูลเมื่อ ' + fmtTime(appState.loadedAt) + ' (อัปเดตไม่สำเร็จ)', 'error');
+      return;
+    }
+    throw e;
+  }
 }
 
-function invalidateData() { appState.summary = null; }
+// เรียกหลังบันทึก/แก้ไข/ลบ: ข้อมูลที่จำไว้ในเครื่องเก่าแล้ว ห้ามนำมาแสดงอีก
+function invalidateData() {
+  appState.summary = null; appState.stale = false;
+  try { localStorage.removeItem(DATA_CACHE_KEY); } catch(e) {}
+}
 
 const rateOf = a => { const r = parseFloat(a.rate); return isFinite(r) ? r : 3.09; };
 
@@ -822,14 +880,30 @@ async function loadDashboard() {
       return;
   }
 
+  // เปิดแอป: แสดงข้อมูลล่าสุดที่จำไว้ในเครื่องทันที แล้วค่อยอัปเดตจาก Google
+  if (!appState.summary) {
+    const cached = loadCachedData();
+    if (cached) {
+      applyData(cached, true);
+      renderDashboard(appState.summary);
+    }
+  }
+  if (appState.summary) updateConnectionUI('กำลังอัปเดต...');
+
   try {
     await fetchData();
     renderDashboard(appState.summary);
     updateConnectionUI('เชื่อมต่อแล้ว');
     
   } catch(e) {
-    el.innerHTML = `<div class="empty-state" style="color:var(--accent-red);">❌ ${e.message}</div>`;
-    updateConnectionUI('เกิดข้อผิดพลาด', true);
+    if (appState.summary) {
+      updateConnectionUI('ข้อมูลเมื่อ ' + fmtTime(appState.loadedAt), true);
+      toast('อัปเดตข้อมูลไม่สำเร็จ: ' + e.message, 'error');
+    } else {
+      el.innerHTML = `<div class="empty-state" style="color:var(--accent-red);">❌ ${escapeHtml(e.message)}
+        <div style="margin-top:16px;"><button class="btn btn-outline" style="width:auto; padding:10px 24px;" onclick="loadDashboard()">🔄 ลองใหม่</button></div></div>`;
+      updateConnectionUI('เกิดข้อผิดพลาด', true);
+    }
   }
 }
 
@@ -1196,7 +1270,7 @@ async function submitPayment(btn) {
 
   const onSaved = (msg) => {
     toast(msg, 'success');
-    appState.summary = null;
+    invalidateData();
     ['f_total','f_interest','f_principal','f_remaining','f_note'].forEach(id => document.getElementById(id).value = '');
     setTimeout(() => { document.querySelector('.nav-item').click(); }, 1000);
   };
@@ -1223,9 +1297,22 @@ async function submitPayment(btn) {
 //  HISTORY & EDITING
 // =============================================
 let historyRows = [];
-async function loadHistory() {
+async function loadHistory(force = false) {
   const el = document.getElementById('historyArea');
   const selAcc = document.getElementById('hist_account');
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div>กำลังโหลดประวัติ...</div>';
+
+  // ใช้ข้อมูลชุดเดียวกับหน้าภาพรวม ไม่ต้องยิงคำขอใหม่ทุกครั้งที่เปิดหน้า (กด 🔄 เพื่อบังคับโหลดใหม่)
+  if (force) invalidateData();
+  try {
+    await ensureData({ allowStale: true });
+    updateConnectionUI(appState.stale ? 'ข้อมูลเมื่อ ' + fmtTime(appState.loadedAt) : 'เชื่อมต่อแล้ว', appState.stale);
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state" style="color:var(--accent-red);">❌ ${escapeHtml(e.message)}
+      <div style="margin-top:16px;"><button class="btn btn-outline" style="width:auto; padding:10px 24px;" onclick="loadHistory(true)">🔄 ลองใหม่</button></div></div>`;
+    updateConnectionUI('เกิดข้อผิดพลาด', true);
+    return;
+  }
   
   if(selAcc.options.length <= 1 && appState.accounts.length > 0) {
       appState.accounts.forEach(a => {
@@ -1237,16 +1324,10 @@ async function loadHistory() {
   }
 
   const accountId = selAcc.value;
-  el.innerHTML = '<div class="loading-box"><div class="spinner"></div>กำลังโหลดประวัติ...</div>';
 
   try {
-    const params = { action: 'getPayments' };
-    if (accountId) params.accountId = accountId;
-    const data = await callGAS(params);
-    let rows = data.payments || [];
+    const rows = accountId ? appState.payments.filter(p => p.accountId === accountId) : appState.payments;
     historyRows = rows;
-    
-    if(!accountId) appState.payments = rows; 
 
     if (!rows.length) {
       el.innerHTML = '<div class="empty-state">ยังไม่มีรายการชำระในระบบ</div>';
@@ -1336,7 +1417,7 @@ async function saveEdit() {
     clearReqId(prm);
     toast('บันทึกการแก้ไขสำเร็จ', 'success');
     closeEditModal();
-    appState.summary = null; // force reload dashboard
+    invalidateData();
     loadHistory(); // refresh list
   } catch(e) {
     toast('บันทึกไม่สำเร็จ: ' + e.message + (e.uncertain ? ' (กรุณาเช็คในประวัติก่อนบันทึกซ้ำ)' : ''), 'error');
@@ -1361,7 +1442,7 @@ async function deletePayment() {
     clearReqId(prm);
     toast('ลบรายการสำเร็จ', 'success');
     closeEditModal();
-    appState.summary = null;
+    invalidateData();
     loadHistory();
   } catch(e) {
     toast('ลบไม่สำเร็จ: ' + e.message, 'error');
@@ -1375,7 +1456,7 @@ async function deletePayment() {
 //  REPORTS
 // =============================================
 async function renderReports() {
-    try { await ensureData(); }
+    try { await ensureData({ allowStale: true }); }
     catch(e) { toast('โหลดข้อมูลรายงานไม่สำเร็จ: ' + e.message, 'error'); return; }
     if(!appState.payments.length) {
         toast('ยังไม่มีรายการชำระสำหรับทำรายงาน', 'error');
@@ -1575,7 +1656,7 @@ async function renderReports() {
 // =============================================
 async function renderRateSettings() {
     const area = document.getElementById('rateSettingsArea');
-    try { await ensureData(); } catch(e) { return; }
+    try { await ensureData({ allowStale: true }); } catch(e) { return; }
     if(!appState.accounts.length) return;
     
     let html = `<div class="card-label" style="color:#fff; margin-bottom:16px;">อัปเดตอัตราดอกเบี้ยปัจจุบัน</div>`;
@@ -1624,7 +1705,7 @@ async function testConnection() {
         <span style="font-size:12px; opacity:0.8;">วันเริ่มสัญญา: ${data.contractStart}</span>
       </div>`;
       
-      appState.summary = null;
+      invalidateData();
   } catch(e) {
     document.getElementById('settingsResult').innerHTML = 
     `<div style="color:var(--accent-red); padding:12px; background:rgba(239, 68, 68, 0.1); border-radius:8px; font-size:13px; line-height:1.6; margin-top: 10px;">
@@ -1665,6 +1746,14 @@ window.onload = function() {
   setInterval(setGreeting, 60000 * 60); 
   loadDashboard();
 };
+
+// กลับมาเปิดแอปจากพื้นหลังหลังผ่านไปนาน ให้ดึงข้อมูลใหม่
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !appState.loadedAt) return;
+  if (Date.now() - appState.loadedAt < 5 * 60 * 1000) return;
+  if (document.getElementById('page-dashboard').classList.contains('active')) loadDashboard();
+  else appState.stale = true;
+});
 </script>
 </body>
 </html>
