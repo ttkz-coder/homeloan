@@ -11,21 +11,27 @@
 <meta name="apple-mobile-web-app-title" content="Homeloan">
 <meta name="theme-color" content="#0A0F1C">
     
-<!-- นำเข้า Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- นำเข้า three.js สำหรับ UI 3 มิติ -->
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
   :root {
     /* Premium Dark Theme Palette */
     --bg-main: #0A0F1C;
-    --bg-card: #131B2F;
-    --bg-input: #1A243D;
-    
+    --bg-card: rgba(19, 27, 47, 0.62);
+    --bg-card-solid: #131B2F;
+    --bg-input: rgba(26, 36, 61, 0.85);
+
     --text-primary: #FFFFFF;
     --text-secondary: #94A3B8;
     --text-muted: #64748B;
-    
+
     --accent-gold: #FBBF24;
     --accent-gold-glow: rgba(251, 191, 36, 0.2);
     --accent-green: #34D399;
@@ -34,23 +40,31 @@
     --accent-blue-dark: #0284C7;
     --accent-red: #EF4444;
     --accent-pink: #EC4899;
-    
+
     --border-light: rgba(255, 255, 255, 0.08);
     --border-focus: rgba(251, 191, 36, 0.5);
-    
+
     --radius-lg: 24px;
     --radius-md: 16px;
     --radius-sm: 10px;
-    
-    --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.4);
+
+    /* เงาหลายชั้นให้การ์ดดูลอยมีความหนา */
+    --shadow-card:
+      inset 0 1px 0 rgba(255,255,255,0.07),
+      inset 0 -1px 0 rgba(0,0,0,0.4),
+      0 2px 0 rgba(8,12,24,0.9),
+      0 6px 0 -2px rgba(8,12,24,0.6),
+      0 24px 40px -12px rgba(0,0,0,0.7);
     --shadow-nav: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  
+
+  html { background: var(--bg-main); }
   body {
     font-family: 'IBM Plex Sans Thai', sans-serif;
-    background-color: var(--bg-main);
+    background: transparent;
     color: var(--text-primary);
     min-height: 100vh;
     font-size: 15px;
@@ -58,26 +72,81 @@
     line-height: 1.5;
     padding-bottom: 170px; /* เว้นที่ให้แถบเมนูและปุ่มลอย */
     padding-top: env(safe-area-inset-top);
+    overflow-x: hidden;
   }
+
+  /* === 3D CANVAS LAYERS === */
+  /* ฉากพื้นหลัง 3 มิติ อยู่หลังทุกอย่าง */
+  #bg3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; pointer-events: none; }
+  /* ชั้นวาดกราฟ 3 มิติ ทับการ์ด แต่อยู่ใต้ header / เมนู / modal */
+  #fx3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; display: block; pointer-events: none; }
+
+  .viz3d {
+    position: relative; width: 100%; height: 200px; margin-top: 12px;
+    touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;
+  }
+  .viz3d:active { cursor: grabbing; }
+  .viz3d.tall { height: 260px; }
+  .viz3d.house { height: 230px; margin-top: 4px; }
+  .viz3d.short { height: 150px; }
+  .viz-axis { position: absolute; transform: translate(-50%, 0); font-size: 10px; color: var(--text-secondary); white-space: nowrap; pointer-events: none; }
+  .viz-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center; }
+  .viz-hint { position: absolute; right: 0; top: 0; font-size: 10px; color: var(--text-muted); pointer-events: none; display: flex; gap: 4px; align-items: center; }
+  .viz-fallback { display: none; }
+  .no-webgl .viz3d { height: auto; cursor: default; }
+  .no-webgl .viz-fallback { display: block; }
+  .no-webgl .viz-hint, .no-webgl .viz-axis { display: none; }
+
+  .viz-tip {
+    position: fixed; z-index: 20000; pointer-events: none;
+    background: rgba(10, 15, 28, 0.92); border: 1px solid rgba(251,191,36,0.35);
+    border-radius: 12px; padding: 10px 14px; font-size: 12px; color: #fff;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    transform: translate(-50%, calc(-100% - 14px)) perspective(400px) rotateX(12deg);
+    opacity: 0; transition: opacity .15s;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    min-width: 120px;
+  }
+  .viz-tip.show { opacity: 1; }
+  .viz-tip b { display: block; font-size: 13px; margin-bottom: 4px; }
+  .viz-tip .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .legend-3d { display: grid; gap: 8px; margin-top: 14px; }
+  .legend-row {
+    display: grid; grid-template-columns: 14px 1fr auto auto; gap: 10px; align-items: center;
+    font-size: 13px; padding: 8px 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-light);
+  }
+  .legend-cube {
+    width: 12px; height: 12px; border-radius: 3px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.45), inset -2px -2px 0 rgba(0,0,0,0.25);
+    transform: rotate(45deg) skew(-8deg,-8deg);
+  }
+  .legend-val { font-family: 'IBM Plex Mono', monospace; color: #fff; font-weight: 600; }
+  .legend-pct { font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); font-size: 12px; min-width: 46px; text-align: right; }
 
   /* === HEADER === */
   .app-header {
     padding: 20px 24px 10px;
     position: sticky;
     top: 0;
-    background: linear-gradient(180deg, var(--bg-main) 70%, transparent);
+    background: linear-gradient(180deg, var(--bg-main) 60%, rgba(10,15,28,0));
     z-index: 100;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
   }
   .header-titles h1 {
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 700;
     margin-bottom: 4px;
-    background: linear-gradient(90deg, #fff, #CBD5E1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #fff;
+    /* ตัวอักษรนูนแบบ extrude */
+    text-shadow:
+      0 1px 0 #CBD5E1, 0 2px 0 #94A3B8, 0 3px 0 #64748B,
+      0 4px 0 #334155, 0 8px 14px rgba(0,0,0,0.6);
+    transform: perspective(500px) rotateX(10deg);
+    transform-origin: left bottom;
   }
   .greeting {
     font-size: 13px;
@@ -93,7 +162,10 @@
     font-size: 12px;
     color: var(--text-secondary);
     backdrop-filter: blur(8px);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: transform .2s var(--ease-spring);
   }
+  .status-badge:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.5); }
   .status-dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--accent-green);
@@ -103,13 +175,18 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
   /* === CONTENT & CARDS === */
-  .content { padding: 10px 20px 20px; max-width: 600px; margin: 0 auto; }
-  .page { display: none; animation: fadeIn 0.3s ease-out forwards; opacity: 0; }
-  .page.active { display: block; }
-  @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .content { padding: 10px 20px 20px; max-width: 600px; margin: 0 auto; perspective: 1400px; }
+  .page { display: none; transform-style: preserve-3d; }
+  .page.active { display: block; animation: pageIn 0.55s var(--ease-spring) backwards; }
+  @keyframes pageIn {
+    from { opacity: 0; transform: translateZ(-160px) rotateY(-14deg) rotateX(6deg); }
+    to   { opacity: 1; transform: none; }
+  }
 
   .luxe-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(30, 41, 70, 0.7), var(--bg-card) 45%, rgba(12, 18, 34, 0.75));
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
     border-radius: var(--radius-lg);
     padding: 24px;
     margin-bottom: 20px;
@@ -117,56 +194,98 @@
     border: 1px solid var(--border-light);
     position: relative;
     overflow: hidden;
+    transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(var(--tz, 0px));
+    transition: transform .35s var(--ease-spring), box-shadow .35s;
+    animation: cardIn .5s var(--ease-spring) backwards;
   }
-  
+  .page.active .luxe-card:nth-child(2), #summaryArea > :nth-child(2) { animation-delay: .06s; }
+  .page.active .luxe-card:nth-child(3), #summaryArea > :nth-child(3) { animation-delay: .12s; }
+  .page.active .luxe-card:nth-child(4), #summaryArea > :nth-child(4) { animation-delay: .18s; }
+  .page.active .luxe-card:nth-child(5), #summaryArea > :nth-child(5) { animation-delay: .24s; }
+  .page.active .luxe-card:nth-child(n+6) { animation-delay: .3s; }
+  @keyframes cardIn {
+    from { opacity: 0; transform: perspective(1000px) rotateX(-22deg) translateY(40px) translateZ(-80px); }
+    to   { opacity: 1; }
+  }
+  .luxe-card.tilting { transition: transform .08s linear; --tz: 12px; }
+
+  /* ไฮไลต์ขอบบนกับแสงสะท้อนที่ขยับตามเมาส์ */
   .luxe-card::after {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  }
+  .luxe-card::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(400px circle at var(--gx, 50%) var(--gy, -20%), rgba(255,255,255,0.07), transparent 45%);
   }
 
-  .card-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;}
-  .card-value { 
-    font-family: 'IBM Plex Mono', monospace; 
-    font-size: 32px; 
-    font-weight: 700; 
+  .card-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; position: relative; }
+  .card-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
     letter-spacing: -0.5px;
     line-height: 1.2;
+    text-shadow: 0 1px 0 #CBD5E1, 0 2px 0 #64748B, 0 3px 0 #334155, 0 6px 12px rgba(0,0,0,0.5);
   }
-  .val-gold { color: var(--accent-gold); text-shadow: 0 2px 10px var(--accent-gold-glow); }
-  .val-green { color: var(--accent-green); text-shadow: 0 2px 10px rgba(52, 211, 153, 0.2); }
-  .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .val-gold { color: var(--accent-gold); text-shadow: 0 1px 0 #D97706, 0 2px 0 #B45309, 0 3px 0 #78350F, 0 6px 14px var(--accent-gold-glow); }
+  .val-green { color: var(--accent-green); text-shadow: 0 1px 0 #059669, 0 2px 0 #047857, 0 3px 0 #064E3B, 0 6px 14px rgba(52, 211, 153, 0.2); }
+  .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; position: relative; }
+
+  .hero-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; position: relative; }
+  .own-meter { text-align: right; }
+  .own-meter .pct { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 700; color: var(--accent-gold); text-shadow: 0 2px 0 #92400E, 0 6px 12px var(--accent-gold-glow); }
+  .own-meter .lbl { font-size: 11px; color: var(--text-secondary); }
 
   /* === SIMULATOR === */
   .simulator-box {
-    background: linear-gradient(145deg, rgba(251, 191, 36, 0.05), rgba(0,0,0,0));
+    background: linear-gradient(145deg, rgba(251, 191, 36, 0.07), rgba(0,0,0,0.15));
     border: 1px solid rgba(251, 191, 36, 0.2);
     border-radius: var(--radius-md);
     padding: 16px;
     margin-top: 20px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.35);
   }
+  /* สไลเดอร์แบบรางลึก + ปุ่มเหรียญทอง */
   .range-slider {
-    width: 100%; margin: 16px 0;
-    accent-color: var(--accent-gold);
+    -webkit-appearance: none; appearance: none;
+    width: 100%; margin: 18px 0; height: 10px; border-radius: 10px; padding: 0; border: none;
+    background: linear-gradient(90deg, var(--accent-gold) var(--fill, 0%), rgba(0,0,0,0.45) var(--fill, 0%));
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .range-slider:focus { box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 0 0 2px var(--border-focus); }
+  .range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FDE68A, #FBBF24 45%, #B45309);
+    box-shadow: 0 4px 0 #78350F, 0 8px 14px rgba(0,0,0,0.5); cursor: pointer; border: none;
+  }
+  .range-slider::-moz-range-thumb {
+    width: 28px; height: 28px; border-radius: 50%; border: none;
+    background: radial-gradient(circle at 35% 30%, #FDE68A, #FBBF24 45%, #B45309);
+    box-shadow: 0 4px 0 #78350F, 0 8px 14px rgba(0,0,0,0.5); cursor: pointer;
   }
   .sim-result { display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px;}
-  
+
   /* === VIP RANK === */
   .vip-rank {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 12px; border-radius: 100px;
+    padding: 6px 14px; border-radius: 100px;
     font-size: 12px; font-weight: 600;
     background: rgba(255,255,255,0.1);
     color: #fff;
     margin-top: 12px;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.5);
+    animation: rankFloat 4s ease-in-out infinite;
   }
-  .rank-gold { background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #000; box-shadow: 0 2px 10px rgba(251,191,36,0.3);}
-  .rank-plat { background: linear-gradient(135deg, #E2E8F0, #94A3B8); color: #0F172A; }
+  @keyframes rankFloat { 0%,100% { transform: perspective(300px) rotateX(10deg) translateY(0); } 50% { transform: perspective(300px) rotateX(-10deg) translateY(-3px); } }
+  .rank-gold { background: linear-gradient(135deg, #FBBF24, #F59E0B); color: #000; box-shadow: 0 3px 0 #92400E, 0 6px 14px rgba(251,191,36,0.3);}
+  .rank-plat { background: linear-gradient(135deg, #E2E8F0, #94A3B8); color: #0F172A; box-shadow: 0 3px 0 #475569; }
 
   /* === BOTTOM NAVIGATION === */
   .bottom-nav {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: rgba(19, 27, 47, 0.9);
+    background: rgba(19, 27, 47, 0.88);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     border-top: 1px solid var(--border-light);
@@ -175,42 +294,58 @@
     padding: 12px 10px calc(12px + env(safe-area-inset-bottom));
     z-index: 999;
     box-shadow: var(--shadow-nav);
+    perspective: 600px;
   }
   .nav-item {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     color: var(--text-muted);
     background: transparent; border: none; outline: none;
     font-family: inherit; font-size: 10px; font-weight: 500;
-    cursor: pointer; transition: all 0.2s;
-    width: 60px;
+    cursor: pointer; transition: transform .35s var(--ease-spring), color .2s, background .2s, box-shadow .2s;
+    width: 64px; padding: 6px 0; border-radius: 14px;
+    transform-style: preserve-3d;
   }
-  .nav-item svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-  .nav-item.active { color: var(--accent-gold); }
-  .nav-item.active svg { transform: translateY(-3px); filter: drop-shadow(0 2px 4px var(--accent-gold-glow)); }
+  .nav-item svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; transition: all 0.35s var(--ease-spring); }
+  /* ปุ่มที่เลือกยกนูนเหมือนปุ่มคีย์บอร์ด */
+  .nav-item.active {
+    color: var(--accent-gold);
+    background: linear-gradient(180deg, rgba(251,191,36,0.16), rgba(251,191,36,0.04));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 0 rgba(0,0,0,0.55), 0 10px 18px -6px rgba(251,191,36,0.35);
+    transform: translateY(-4px) rotateX(12deg);
+  }
+  .nav-item.active svg { transform: translateZ(14px) scale(1.1); filter: drop-shadow(0 3px 3px rgba(0,0,0,0.6)); }
+  .nav-item:active { transform: translateY(1px) scale(.95); }
 
-  /* === FLOATING ADD BUTTON === */
+  /* === FLOATING ADD BUTTON (เหรียญทอง 3 มิติ) === */
   .fab-add {
     position: fixed;
     right: max(20px, calc(50% - 300px + 20px));
-    bottom: calc(88px + env(safe-area-inset-bottom));
+    bottom: calc(92px + env(safe-area-inset-bottom));
     width: 64px; height: 64px;
     border-radius: 50%;
     border: none; outline: none; cursor: pointer;
-    background: var(--accent-gold);
-    color: #0F172A;
+    background: radial-gradient(circle at 35% 28%, #FEF3C7, #FBBF24 42%, #D97706 80%);
+    color: #422006;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px rgba(251, 191, 36, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      inset 0 -4px 6px rgba(120, 53, 15, 0.45), inset 0 3px 4px rgba(255,255,255,0.5),
+      0 5px 0 #B45309, 0 7px 0 #78350F,
+      0 16px 26px rgba(251, 191, 36, 0.3), 0 10px 20px rgba(0, 0, 0, 0.5);
     z-index: 1000;
-    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.35s var(--ease-spring), opacity 0.2s ease, box-shadow 0.2s ease;
+    animation: coinBob 3.2s ease-in-out infinite;
   }
-  .fab-add svg { width: 30px; height: 30px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; fill: none; }
-  .fab-add:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3); }
-  .fab-add.hidden { opacity: 0; transform: scale(0.6); pointer-events: none; }
+  @keyframes coinBob { 0%,100% { translate: 0 0; } 50% { translate: 0 -5px; } }
+  .fab-add svg { width: 30px; height: 30px; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; fill: none; filter: drop-shadow(0 1px 0 rgba(255,255,255,0.5)); }
+  .fab-add:hover { transform: perspective(300px) rotateY(180deg); }
+  .fab-add:hover svg { transform: scaleX(-1); }
+  .fab-add:active { transform: translateY(5px); box-shadow: inset 0 -4px 6px rgba(120,53,15,0.45), 0 1px 0 #B45309, 0 2px 0 #78350F, 0 6px 12px rgba(0,0,0,0.5); }
+  .fab-add.hidden { opacity: 0; transform: scale(0.4) rotateY(90deg); pointer-events: none; }
 
   /* === FORMS === */
-  .form-group { margin-bottom: 16px; }
+  .form-group { margin-bottom: 16px; position: relative; }
   label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;}
+  /* ช่องกรอกแบบเว้าลึกลงไปในการ์ด */
   input, select, textarea {
     width: 100%;
     background: var(--bg-input);
@@ -221,105 +356,156 @@
     font-size: 15px; font-family: inherit;
     transition: all 0.2s;
     appearance: none;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.45), inset 0 -1px 0 rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.05);
   }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
   select {
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat; background-position: right 16px center; background-size: 16px;
   }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 1px var(--border-focus); }
-  
+  select option { background: var(--bg-card-solid); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-gold); box-shadow: inset 0 3px 6px rgba(0,0,0,0.45), 0 0 0 1px var(--border-focus), 0 0 18px rgba(251,191,36,0.15); }
+
   .input-hint {
     background: rgba(56, 189, 248, 0.1);
-    border-radius: 8px; padding: 12px; margin-top: 8px;
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 10px; padding: 12px; margin-top: 8px;
     font-size: 13px; color: var(--accent-blue);
     display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.35);
   }
 
-  /* === BUTTONS === */
+  /* === BUTTONS (ปุ่มนูน กดแล้วยุบ) === */
   .btn {
     width: 100%; padding: 14px; border-radius: var(--radius-sm);
     font-size: 15px; font-weight: 600; font-family: inherit;
-    border: none; cursor: pointer; transition: all 0.2s;
+    border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform .12s ease, box-shadow .12s ease, filter .2s;
+    position: relative;
   }
   .btn-gold {
-    background: linear-gradient(135deg, var(--accent-gold), #D97706);
-    color: #000; box-shadow: 0 4px 14px var(--accent-gold-glow);
+    background: linear-gradient(180deg, #FCD34D, var(--accent-gold) 40%, #D97706);
+    color: #1C1003;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 4px 0 #92400E, 0 10px 18px -4px var(--accent-gold-glow), 0 8px 16px rgba(0,0,0,0.35);
   }
-  .btn-gold:active { transform: scale(0.98); }
-  .btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-primary); }
+  .btn-gold:active { transform: translateY(4px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 #92400E, 0 2px 6px rgba(0,0,0,0.4); }
+  .btn-outline {
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+    border: 1px solid var(--border-light); color: var(--text-primary);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 0 rgba(0,0,0,0.5);
+  }
+  .btn-outline:active { transform: translateY(4px); box-shadow: 0 0 0 rgba(0,0,0,0.5); }
+  .btn:disabled { filter: saturate(.6) brightness(.85); }
   .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; border-radius: 100px;}
-  
+  .btn-sm.btn-outline { box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 0 rgba(0,0,0,0.5); }
+  .btn-sm:active { transform: translateY(3px); }
+
   /* === TABLES (HISTORY & REPORTS) === */
   .table-header-controls { display: flex; gap: 10px; margin-bottom: 16px; align-items: center;}
-  .history-list { display: flex; flex-direction: column; gap: 12px; }
+  .history-list { display: flex; flex-direction: column; gap: 14px; perspective: 900px; }
+  /* รายการประวัติเป็นแผ่นซ้อน ลอยขึ้นทีละใบ */
   .hist-row {
-    background: var(--bg-input); border-radius: var(--radius-sm);
+    background: linear-gradient(160deg, rgba(36, 48, 80, 0.85), rgba(22, 31, 54, 0.9));
+    border-radius: 14px;
     padding: 16px; display: flex; flex-direction: column; gap: 12px;
     border: 1px solid var(--border-light);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 0 rgba(6,10,20,0.9), 0 12px 20px -8px rgba(0,0,0,0.6);
+    transform-origin: center top;
+    animation: rowIn .5s var(--ease-spring) backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
+    transition: transform .3s var(--ease-spring);
   }
+  .hist-row:hover { transform: translateZ(18px) rotateX(4deg); }
+  @keyframes rowIn { from { opacity: 0; transform: rotateX(-70deg) translateY(-10px); } to { opacity: 1; transform: none; } }
   .hist-main { display: flex; justify-content: space-between; align-items: center; }
   .hist-left { display: flex; flex-direction: column; gap: 4px; }
   .hist-right { text-align: right; display: flex; flex-direction: column; gap: 4px; }
   .hist-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
-  
+
   .badge-acc {
     display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.5); width: fit-content;
   }
   .badge-EXTRA { border: 1px solid var(--accent-gold); color: var(--accent-gold); background: rgba(251,191,36,0.1); }
   .badge-HOME  { border: 1px solid var(--accent-blue); color: var(--accent-blue); background: rgba(56,189,248,0.1); }
   .badge-MRTA  { border: 1px solid var(--accent-pink); color: var(--accent-pink); background: rgba(236,72,153,0.1); }
-  
+
   .hist-date { font-size: 13px; color: var(--text-secondary); }
-  .hist-amount { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: #fff;}
+  .hist-amount { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.6); }
   .hist-detail { font-size: 12px; color: var(--accent-green); font-family: 'IBM Plex Mono', monospace;}
 
-  .yearly-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: right; }
-  .yearly-table th { padding: 12px 6px; border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-weight: 500; }
+  .yearly-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 13px; text-align: right; }
+  .yearly-table th { padding: 8px 6px; color: var(--text-muted); font-weight: 500; }
   .yearly-table th:first-child { text-align: left; }
-  .yearly-table td { padding: 14px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: 'IBM Plex Mono', monospace; }
-  .yearly-table td:first-child { text-align: left; font-family: 'IBM Plex Sans Thai', sans-serif; color: #fff; }
+  .yearly-table tbody tr { background: rgba(255,255,255,0.035); box-shadow: 0 3px 0 rgba(0,0,0,0.4); }
+  .yearly-table td { padding: 12px 6px; font-family: 'IBM Plex Mono', monospace; }
+  .yearly-table td:first-child { text-align: left; font-family: 'IBM Plex Sans Thai', sans-serif; color: #fff; border-radius: 8px 0 0 8px; padding-left: 10px; }
+  .yearly-table td:last-child { border-radius: 0 8px 8px 0; padding-right: 10px; }
+
+  /* แท่งเกจลดหย่อนภาษีแบบหลอดแก้ว */
+  .gauge-3d { background: rgba(0,0,0,0.4); border-radius: 100px; height: 14px; overflow: hidden; box-shadow: inset 0 3px 5px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.06); }
+  .gauge-3d > div { height: 100%; border-radius: 100px; background: linear-gradient(180deg, #FDE68A, var(--accent-gold) 45%, #B45309); box-shadow: inset 0 2px 1px rgba(255,255,255,0.45), 0 0 12px var(--accent-gold-glow); transition: width 1s; }
 
   /* === MODAL (EDIT) === */
   .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(10, 15, 28, 0.8); backdrop-filter: blur(5px);
+      background: rgba(10, 15, 28, 0.75); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
       display: flex; align-items: center; justify-content: center;
       z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+      perspective: 1000px;
   }
   .modal-overlay.active { opacity: 1; pointer-events: auto; }
   .modal-content {
-      background: var(--bg-card); border: 1px solid var(--border-light);
+      background: linear-gradient(160deg, #1E2946, var(--bg-card-solid));
+      border: 1px solid var(--border-light);
       border-radius: var(--radius-lg); padding: 24px; width: 90%; max-width: 400px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-      transform: translateY(20px); transition: transform 0.3s;
+      box-shadow: var(--shadow-card), 0 40px 80px rgba(0,0,0,0.6);
+      transform: rotateX(-35deg) translateY(60px) translateZ(-120px); transform-origin: center bottom;
+      transition: transform 0.5s var(--ease-spring);
       max-height: 80vh; overflow-y: auto;
   }
-  .modal-overlay.active .modal-content { transform: translateY(0); }
+  .modal-overlay.active .modal-content { transform: none; }
 
   /* === UTILS & TOAST === */
-  .chart-container { position: relative; height: 220px; width: 100%; margin-top: 16px;}
-  .chart-container-large { position: relative; height: 300px; width: 100%; margin-top: 16px;}
   .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
-  
-  .toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px;}
+
+  .toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 400px; perspective: 600px; }
   .toast {
-    background: var(--bg-card); border: 1px solid var(--border-light); color: #fff;
+    background: linear-gradient(160deg, #1E2946, var(--bg-card-solid)); border: 1px solid var(--border-light); color: #fff;
     padding: 14px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    animation: slideDown .3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.6), 0 14px 30px rgba(0,0,0,0.5);
+    animation: slideDown .45s var(--ease-spring); display: flex; align-items: center; gap: 10px;
+    transform-origin: center top;
   }
   .toast.success { border-left: 4px solid var(--accent-green); }
   .toast.error   { border-left: 4px solid var(--accent-red); }
-  @keyframes slideDown { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
-  
+  @keyframes slideDown { from{transform:rotateX(-90deg);opacity:0} to{transform:none;opacity:1} }
+
   .spinner { width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-gold); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;}
   @keyframes spin { to{transform:rotate(360deg)} }
-  .loading-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 16px; color: var(--text-secondary); font-size: 14px;}
+  .loading-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 16px; color: var(--text-secondary); font-size: 14px; }
+  /* ลูกบาศก์หมุนตอนโหลด */
+  .cube-loader { width: 34px; height: 34px; position: relative; transform-style: preserve-3d; animation: cubeSpin 1.6s infinite linear; }
+  .cube-loader i { position: absolute; inset: 0; border: 2px solid var(--accent-gold); background: rgba(251,191,36,0.08); }
+  .cube-loader i:nth-child(1) { transform: translateZ(17px); }
+  .cube-loader i:nth-child(2) { transform: rotateY(180deg) translateZ(17px); }
+  .cube-loader i:nth-child(3) { transform: rotateY(90deg) translateZ(17px); }
+  .cube-loader i:nth-child(4) { transform: rotateY(-90deg) translateZ(17px); }
+  .cube-loader i:nth-child(5) { transform: rotateX(90deg) translateZ(17px); }
+  .cube-loader i:nth-child(6) { transform: rotateX(-90deg) translateZ(17px); }
+  @keyframes cubeSpin { from { transform: rotateX(-25deg) rotateY(0); } to { transform: rotateX(-25deg) rotateY(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
 </style>
 </head>
 <body>
+
+<!-- ชั้นวาด 3 มิติ (three.js) -->
+<canvas id="bg3d" aria-hidden="true"></canvas>
+<canvas id="fx3d" aria-hidden="true"></canvas>
 
 <!-- HEADER -->
 <div class="app-header">
@@ -341,7 +527,7 @@
   <!-- ================= DASHBOARD ================= -->
   <div id="page-dashboard" class="page active">
     <div id="summaryArea">
-      <div class="loading-box"><div class="spinner"></div>กำลังโหลดข้อมูลบัญชี...</div>
+      <div class="loading-box"><div class="cube-loader"><i></i><i></i><i></i><i></i><i></i><i></i></div>กำลังโหลดข้อมูลบัญชี...</div>
     </div>
   </div>
 
@@ -407,7 +593,7 @@
         <button class="btn btn-outline" style="width:auto; padding:14px;" onclick="loadHistory()">🔄</button>
       </div>
       <div id="historyArea">
-        <div class="loading-box"><div class="spinner"></div>กำลังโหลดประวัติ...</div>
+        <div class="loading-box"><div class="cube-loader"><i></i><i></i><i></i><i></i><i></i><i></i></div>กำลังโหลดประวัติ...</div>
       </div>
     </div>
   </div>
@@ -425,40 +611,36 @@
         <!-- Rendered via JS -->
     </div>
 
-    <!-- 3. Monthly Trend Chart -->
+    <!-- 3. Monthly Trend Chart (3D) -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">วิเคราะห์แนวโน้มการผ่อนชำระ</div>
-      <div class="card-sub">กราฟแท่งแสดงยอดเงินต้นและดอกเบี้ยรายเดือน</div>
-      <div class="chart-container-large">
-        <canvas id="barChart"></canvas>
-      </div>
+      <div class="card-sub">กราฟแท่ง 3 มิติ ยอดเงินต้นและดอกเบี้ยรายเดือน · แตะแท่งเพื่อดูยอด</div>
+      <div class="viz3d tall" id="barChart"></div>
+      <div class="legend-3d" id="barLegend"></div>
     </div>
-    
-    <!-- 4. Paid vs Interest Pie -->
+
+    <!-- 4. Paid vs Interest (3D) -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">สัดส่วนที่จ่ายไปแล้วทั้งหมด</div>
       <div class="card-sub">เทียบระหว่างเงินต้นที่ลดได้ กับดอกเบี้ยที่เสียไป</div>
-      <div class="chart-container">
-        <canvas id="doughnutChart"></canvas>
-      </div>
+      <div class="viz3d" id="doughnutChart"></div>
+      <div class="legend-3d" id="doughnutLegend"></div>
     </div>
 
-    <!-- NEW: Principal Paid by Account Pie -->
+    <!-- Principal Paid by Account (3D) -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">สัดส่วนเงินต้นที่ชำระไปแล้ว</div>
       <div class="card-sub">แยกตามประเภทบัญชีสินเชื่อ</div>
-      <div class="chart-container">
-        <canvas id="principalPaidChart"></canvas>
-      </div>
+      <div class="viz3d" id="principalPaidChart"></div>
+      <div class="legend-3d" id="principalPaidLegend"></div>
     </div>
-    
-    <!-- 5. Balances By Account Pie -->
+
+    <!-- 5. Balances By Account (3D) -->
     <div class="luxe-card">
       <div class="card-label" style="color:#fff;">สัดส่วนยอดหนี้คงเหลือ</div>
       <div class="card-sub">แยกตามประเภทบัญชีสินเชื่อ</div>
-      <div class="chart-container">
-        <canvas id="accountChart"></canvas>
-      </div>
+      <div class="viz3d" id="accountChart"></div>
+      <div class="legend-3d" id="accountLegend"></div>
     </div>
   </div>
 
@@ -580,13 +762,31 @@ let appState = {
     avgRate: 3.09
 };
 
-// Chart Instances
-let charts = { bar: null, pie1: null, pie2: null, dashPie: null, pie3: null };
+// คิวรอเครื่องยนต์ 3D (three.js โหลดแบบ module จะมาแทนที่ตัวนี้เมื่อพร้อม)
+window.Viz3D = window.Viz3D || { _q: [], mount(...a) { this._q.push(['mount', a]); } };
+// ถ้าโหลด three.js ไม่ได้ (เน็ตบล็อก CDN / เครื่องไม่รองรับ WebGL) ให้แสดงแบบ 2D แทน
+setTimeout(() => { if (!window.Viz3D.ready) document.body.classList.add('no-webgl'); }, 8000);
 
-// Chart.js Global Dark Theme Config
-Chart.defaults.color = '#94A3B8';
-Chart.defaults.font.family = "'IBM Plex Sans Thai', sans-serif";
-Chart.defaults.scale.grid.color = 'rgba(255,255,255,0.05)';
+const ACC_COLORS = { HOME: '#38BDF8', EXTRA: '#FBBF24', MRTA: '#EC4899' };
+const accColor = (id, i) => ACC_COLORS[id] || ['#38BDF8', '#FBBF24', '#EC4899', '#34D399'][i % 4];
+
+// ตารางคำอธิบายกราฟ (ตัวเลขจริงอ่านได้แม้ไม่มี 3D)
+function legendHtml(items) {
+  const total = items.reduce((s, it) => s + (it.value || 0), 0) || 1;
+  return items.map(it => `
+    <div class="legend-row">
+      <span class="legend-cube" style="background:${it.color}"></span>
+      <span>${escapeHtml(it.label)}</span>
+      <span class="legend-val">${fmt(it.value)}</span>
+      <span class="legend-pct">${(it.value / total * 100).toFixed(1)}%</span>
+    </div>`).join('');
+}
+
+function mountDonut(id, legendId, items) {
+  const el = document.getElementById(legendId);
+  if (el) el.innerHTML = items.length ? legendHtml(items) : '<div class="empty-state" style="padding:10px;">ไม่มีข้อมูล</div>';
+  window.Viz3D.mount(id, 'donut', { items });
+}
 
 // =============================================
 //  UI UTILS
@@ -628,6 +828,7 @@ function toast(msg, type='') {
 }
 
 function showPage(name, navBtn, title) {
+  window.scrollTo({ top: 0, behavior: 'instant' });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -876,19 +1077,36 @@ function renderDashboard(s) {
     });
     
     el.innerHTML = `
-      <!-- Main Balance -->
-      <div class="luxe-card" style="background: linear-gradient(180deg, rgba(2, 132, 199, 0.1), var(--bg-card));">
-        <div class="card-label">ยอดหนี้คงเหลือรวม</div>
-        <div class="card-value">${fmt(s.totalRemaining)}</div>
-        <div class="card-sub">จากเริ่มต้น ${fmt(s.totalOriginal)} บาท</div>
+      <!-- Main Balance + บ้าน 3 มิติ (ทองไหลขึ้นตาม % ที่ผ่อนไปแล้ว) -->
+      <div class="luxe-card" style="background: linear-gradient(180deg, rgba(2, 132, 199, 0.16), var(--bg-card) 60%);">
+        <div class="hero-row">
+          <div>
+            <div class="card-label">ยอดหนี้คงเหลือรวม</div>
+            <div class="card-value">${fmt(s.totalRemaining)}</div>
+            <div class="card-sub">จากเริ่มต้น ${fmt(s.totalOriginal)} บาท</div>
+          </div>
+        </div>
+        <div class="viz3d house" id="dashHouse">
+          <div class="viz-hint">⟲ ลากเพื่อหมุน</div>
+          <div class="viz-fallback" style="padding-top:12px;">
+            <div class="gauge-3d"><div style="width:${Math.min(100, s.progressPercent)}%"></div></div>
+          </div>
+        </div>
+        <div class="hero-row" style="margin-top:4px;">
+          <div class="card-sub" style="margin:0;">ส่วนสีทอง = ส่วนของบ้านที่เป็นของคุณแล้ว</div>
+          <div class="own-meter">
+            <div class="pct">${s.progressPercent.toFixed(1)}%</div>
+            <div class="lbl">เป็นเจ้าของแล้ว</div>
+          </div>
+        </div>
       </div>
 
-      <!-- Account Breakdown Chart -->
+      <!-- Account Breakdown Chart (3D) -->
       <div class="luxe-card" style="margin-bottom: 20px;">
         <div class="card-label" style="color:#fff;">สัดส่วนยอดหนี้แยกตามบัญชี</div>
-        <div class="chart-container" style="height: 180px;">
-          <canvas id="dashAccountChart"></canvas>
-        </div>
+        <div class="card-sub">โดนัท 3 มิติ · ชิ้นยิ่งสูง ยอดหนี้ยิ่งเยอะ · แตะเพื่อดูยอด</div>
+        <div class="viz3d" id="dashAccountChart"></div>
+        <div class="legend-3d" id="dashAccountLegend"></div>
       </div>
       
       <!-- Account Time Details -->
@@ -953,33 +1171,10 @@ function renderDashboard(s) {
       </div>
     `;
     
-    if(charts.dashPie) charts.dashPie.destroy();
-    const ctxDash = document.getElementById('dashAccountChart').getContext('2d');
     const accData = appState.accounts.filter(a => a.balance > 0);
-    charts.dashPie = new Chart(ctxDash, {
-        type: 'doughnut',
-        data: {
-            labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
-            datasets: [{
-                data: accData.map(a => a.balance),
-                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'],
-                borderWidth: 0, hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, cutout: '75%',
-            plugins: { 
-                legend: { position: 'right', labels: { boxWidth: 12, color: '#94A3B8', font: {family: "'IBM Plex Sans Thai', sans-serif"} } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return ' ' + Number(context.raw).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' บ.';
-                        }
-                    }
-                }
-            }
-        }
-    });
+    window.Viz3D.mount('dashHouse', 'house', { progress: s.progressPercent });
+    mountDonut('dashAccountChart', 'dashAccountLegend',
+        accData.map((a, i) => ({ label: ACCOUNTS_INFO[a.id]?.name || a.id, value: a.balance, color: accColor(a.id, i) })));
 
     runSimulator(0);
 }
@@ -994,6 +1189,8 @@ function calculateNPER(ratePerPeriod, pmt, pv) {
 function runSimulator(extraPaymentStr) {
     const extra = parseInt(extraPaymentStr) || 0;
     document.getElementById('simExtraVal').textContent = '+' + fmt0(extra) + ' ฿';
+    const slider = document.getElementById('simSlider');
+    if (slider) slider.style.setProperty('--fill', (extra / (parseInt(slider.max) || 1) * 100) + '%');
     
     const simAccSelect = document.getElementById('simAccountSelect');
     if(!simAccSelect) return;
@@ -1237,7 +1434,7 @@ async function loadHistory() {
   }
 
   const accountId = selAcc.value;
-  el.innerHTML = '<div class="loading-box"><div class="spinner"></div>กำลังโหลดประวัติ...</div>';
+  el.innerHTML = '<div class="loading-box"><div class="cube-loader"><i></i><i></i><i></i><i></i><i></i><i></i></div>กำลังโหลดประวัติ...</div>';
 
   try {
     const params = { action: 'getPayments' };
@@ -1254,7 +1451,7 @@ async function loadHistory() {
     }
 
     el.innerHTML = `<div class="history-list">` + rows.map((r, i) => `
-      <div class="hist-row">
+      <div class="hist-row" style="--i:${Math.min(i, 12)}">
         <div class="hist-main">
             <div class="hist-left">
                 <span class="badge-acc badge-${escapeHtml(r.accountId)}">${escapeHtml(r.accountId)}</span>
@@ -1425,14 +1622,17 @@ async function renderReports() {
                 <span style="color:#fff;">จ่ายดอกเบี้ยไปแล้ว: <strong style="font-family:'IBM Plex Mono'; color:var(--accent-gold); font-size:16px;">${fmt(currentYearInterest)}</strong> บ.</span>
                 <span style="color:var(--text-muted); font-weight:600;">${taxPercent.toFixed(1)}%</span>
             </div>
-            <div style="background:rgba(255,255,255,0.05); border-radius:100px; height:8px; overflow:hidden;">
-                <div style="background:linear-gradient(90deg, var(--accent-gold), #D97706); height:100%; width:${taxPercent}%; box-shadow:0 0 10px var(--accent-gold-glow); transition:width 1s;"></div>
+            <div class="viz3d short" id="taxCoins">
+                <div class="viz-hint">1 หอ = 10,000 บ.</div>
             </div>
+            <div class="gauge-3d" style="margin-top:8px;"><div style="width:${taxPercent}%"></div></div>
             <div style="margin-top:10px; font-size:12px; color:var(--text-secondary); text-align:right;">
                 เหลือโควต้าให้ใช้สิทธิ์ได้อีก <span style="color:var(--accent-green); font-family:'IBM Plex Mono'; font-size:14px; font-weight:600;">${fmt(Math.max(0, taxQuota - currentYearInterest))}</span> บ.
             </div>
         </div>
     `;
+
+    window.Viz3D.mount('taxCoins', 'coins', { value: currentYearInterest, quota: taxQuota });
 
     // --- B. Render Yearly Summary Table ---
     const years = Object.keys(yearlyStats).sort((a,b) => b - a); 
@@ -1467,106 +1667,32 @@ async function renderReports() {
     tableHtml += `</tbody></table></div>`;
     document.getElementById('yearlySummaryCard').innerHTML = tableHtml;
 
-    // --- C. Bar Chart ---
+    // --- C. Bar Chart (3D) ---
     const trendData = Object.values(monthlyMap).sort((a,b) => a.order.localeCompare(b.order)).slice(-12);
-    if(charts.bar) charts.bar.destroy();
-    const ctxBar = document.getElementById('barChart').getContext('2d');
-    charts.bar = new Chart(ctxBar, {
-        type: 'bar',
-        data: {
-            labels: trendData.map(d => d.label),
-            datasets: [
-                { label: 'เงินต้น', data: trendData.map(d => d.principal), backgroundColor: '#34D399', stack: 'Stack 0' },
-                { label: 'ดอกเบี้ย', data: trendData.map(d => d.interest), backgroundColor: '#FBBF24', stack: 'Stack 0' }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-            scales: {
-                x: { stacked: true, grid: {display: false} },
-                y: { stacked: true, border: {display: false} }
-            }
-        }
-    });
+    const barSeries = [
+        { label: 'เงินต้น', color: '#34D399', values: trendData.map(d => d.principal) },
+        { label: 'ดอกเบี้ย', color: '#FBBF24', values: trendData.map(d => d.interest) }
+    ];
+    window.Viz3D.mount('barChart', 'bars', { labels: trendData.map(d => d.label), series: barSeries });
+    document.getElementById('barLegend').innerHTML = legendHtml(barSeries.map(se => ({
+        label: se.label + ' (' + trendData.length + ' เดือนล่าสุด)', color: se.color, value: se.values.reduce((a, b) => a + b, 0)
+    })));
 
-    // --- D. Paid vs Interest Doughnut ---
-    if(charts.pie1) charts.pie1.destroy();
-    const ctxPie1 = document.getElementById('doughnutChart').getContext('2d');
-    charts.pie1 = new Chart(ctxPie1, {
-        type: 'doughnut',
-        data: {
-            labels: ['ตัดเงินต้นไปแล้ว', 'ดอกเบี้ยจ่ายสะสม'],
-            datasets: [{
-                data: [appState.summary.totalPrincipal, appState.summary.totalInterest],
-                backgroundColor: ['#34D399', '#FBBF24'],
-                borderWidth: 0, hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, cutout: '70%',
-            plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } }
-        }
-    });
+    // --- D. Paid vs Interest Donut ---
+    mountDonut('doughnutChart', 'doughnutLegend', [
+        { label: 'ตัดเงินต้นไปแล้ว', value: appState.summary.totalPrincipal, color: '#34D399' },
+        { label: 'ดอกเบี้ยจ่ายสะสม', value: appState.summary.totalInterest, color: '#FBBF24' }
+    ]);
 
-    // --- NEW: Principal Paid by Account Doughnut ---
-    if(charts.pie3) charts.pie3.destroy();
-    const ctxPie3 = document.getElementById('principalPaidChart').getContext('2d');
-    
-    // Prepare data for the new chart, filtering out accounts with 0 principal paid
-    const accPaidLabels = [];
-    const accPaidData = [];
-    Object.keys(principalPaidByAcc).forEach(accId => {
-        if(principalPaidByAcc[accId] > 0) {
-            accPaidLabels.push(ACCOUNTS_INFO[accId]?.name || accId);
-            accPaidData.push(principalPaidByAcc[accId]);
-        }
-    });
+    // --- Principal Paid by Account Donut ---
+    mountDonut('principalPaidChart', 'principalPaidLegend',
+        Object.keys(principalPaidByAcc).filter(id => principalPaidByAcc[id] > 0)
+            .map((id, i) => ({ label: ACCOUNTS_INFO[id]?.name || id, value: principalPaidByAcc[id], color: accColor(id, i) })));
 
-    charts.pie3 = new Chart(ctxPie3, {
-        type: 'doughnut',
-        data: {
-            labels: accPaidLabels,
-            datasets: [{
-                data: accPaidData,
-                backgroundColor: ['#34D399', '#38BDF8', '#EC4899', '#FBBF24'], // Green, Blue, Pink, Gold
-                borderWidth: 0, hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, cutout: '70%',
-            plugins: { 
-                legend: { position: 'right', labels: { boxWidth: 12 } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return ' ' + Number(context.raw).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' บ.';
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    // --- E. Balances By Account Doughnut ---
-    if(charts.pie2) charts.pie2.destroy();
-    const ctxPie2 = document.getElementById('accountChart').getContext('2d');
-    const accData = appState.accounts.filter(a => a.balance > 0);
-    charts.pie2 = new Chart(ctxPie2, {
-        type: 'doughnut',
-        data: {
-            labels: accData.map(a => ACCOUNTS_INFO[a.id]?.name || a.id),
-            datasets: [{
-                data: accData.map(a => a.balance),
-                backgroundColor: ['#38BDF8', '#FBBF24', '#EC4899'], 
-                borderWidth: 0, hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, cutout: '70%',
-            plugins: { legend: { position: 'right', labels: { boxWidth: 12 } } }
-        }
-    });
+    // --- E. Balances By Account Donut ---
+    mountDonut('accountChart', 'accountLegend',
+        appState.accounts.filter(a => a.balance > 0)
+            .map((a, i) => ({ label: ACCOUNTS_INFO[a.id]?.name || a.id, value: a.balance, color: accColor(a.id, i) })));
 }
 
 
@@ -1660,11 +1786,572 @@ async function saveRate(accountId, btn) {
 // =============================================
 //  INIT
 // =============================================
+// การ์ดเอียงตามนิ้ว/เมาส์ แบบ 3 มิติ (ยกเว้นการ์ดที่มีกราฟ 3D เพราะกราฟจะเลื่อนไม่ตรงกรอบ)
+(function initCardTilt() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let active = null;
+  const reset = () => {
+    if (!active) return;
+    active.classList.remove('tilting');
+    active.style.removeProperty('--rx'); active.style.removeProperty('--ry');
+    active = null;
+  };
+  const tilt = e => {
+    const card = e.target.closest && e.target.closest('.luxe-card');
+    if (!card || card.querySelector('.viz3d') || e.target.closest('input,select,textarea')) { reset(); return; }
+    if (active !== card) { reset(); active = card; card.classList.add('tilting'); }
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+    const k = e.pointerType === 'mouse' ? 6 : 4;
+    card.style.setProperty('--ry', ((px - 0.5) * k * 2).toFixed(2) + 'deg');
+    card.style.setProperty('--rx', ((0.5 - py) * k * 2).toFixed(2) + 'deg');
+    card.style.setProperty('--gx', (px * 100).toFixed(1) + '%');
+    card.style.setProperty('--gy', (py * 100).toFixed(1) + '%');
+  };
+  document.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') tilt(e); }, { passive: true });
+  document.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') tilt(e); }, { passive: true });
+  ['pointerup', 'pointercancel', 'scroll'].forEach(ev => document.addEventListener(ev, e => { if (ev !== 'pointerup' || e.pointerType !== 'mouse') reset(); }, { passive: true }));
+  document.addEventListener('mouseleave', reset);
+})();
+
 window.onload = function() {
   setGreeting();
   setInterval(setGreeting, 60000 * 60); 
   loadDashboard();
 };
+</script>
+
+<script type="module">
+// =============================================
+//  3D ENGINE (three.js)
+//  - #bg3d : ฉากพื้นหลัง (กริด + อนุภาคลอย) อยู่หลังทุกอย่าง
+//  - #fx3d : ชั้นเดียววาดทุกกราฟ 3 มิติ โดยตัด viewport ตามตำแหน่งกล่อง .viz3d บนหน้าจอ
+//            (ใช้ WebGL context เดียว ไม่สร้างหลายอันจนมือถือค้าง)
+// =============================================
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const easeOutBack = x => { const c1 = 1.4, c3 = c1 + 1; return x <= 0 ? 0 : x >= 1 ? 1 : 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const easeOutCubic = x => 1 - Math.pow(1 - clamp(x), 3);
+const fmtB = n => Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+let fx, bg;
+try {
+  fx = new THREE.WebGLRenderer({ canvas: document.getElementById('fx3d'), alpha: true, antialias: true, powerPreference: 'high-performance' });
+  bg = new THREE.WebGLRenderer({ canvas: document.getElementById('bg3d'), alpha: false, antialias: false, powerPreference: 'low-power' });
+} catch (e) {
+  fx = bg = null;
+}
+
+if (!fx || !bg) {
+  document.body.classList.add('no-webgl');
+  const q = window.Viz3D?._q || [];
+  window.Viz3D = { ready: true, failed: true, mount() {}, unmountAll() {} };
+  q.length = 0;
+} else {
+  start();
+}
+
+function start() {
+  fx.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  fx.setClearColor(0x000000, 0);
+  fx.autoClear = false;
+  fx.localClippingEnabled = true;
+  bg.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+
+  const pmrem = new THREE.PMREMGenerator(fx);
+  const envTex = pmrem.fromScene(new RoomEnvironment(fx), 0.04).texture;
+
+  // ---------- วัสดุใช้ร่วม ----------
+  const M = {
+    gold: () => new THREE.MeshStandardMaterial({ color: 0xFBBF24, metalness: 0.9, roughness: 0.25 }),
+    ghost: () => new THREE.MeshStandardMaterial({ color: 0x38BDF8, metalness: 0, roughness: 1, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide }),
+    edge: () => new THREE.LineBasicMaterial({ color: 0x7DD3FC, transparent: true, opacity: 0.55 }),
+  };
+
+  function baseScene() {
+    const scene = new THREE.Scene();
+    scene.environment = envTex;
+    scene.add(new THREE.HemisphereLight(0xBFDBFE, 0x0A0F1C, 0.6));
+    const key = new THREE.DirectionalLight(0xFFF1D6, 1.6); key.position.set(4, 7, 5); scene.add(key);
+    const rim = new THREE.DirectionalLight(0x38BDF8, 1.2); rim.position.set(-5, 3, -4); scene.add(rim);
+    return scene;
+  }
+
+  // ---------- Tooltip ----------
+  const tip = document.createElement('div');
+  tip.className = 'viz-tip';
+  document.body.appendChild(tip);
+  let tipOwner = null;
+  function showTip(v, html, x, y) {
+    tip.innerHTML = html;
+    tip.style.left = clamp(x, 80, window.innerWidth - 80) + 'px';
+    tip.style.top = y + 'px';
+    tip.classList.add('show');
+    tipOwner = v;
+  }
+  function hideTip() { tip.classList.remove('show'); if (tipOwner) tipOwner.highlight = -1; tipOwner = null; }
+  window.addEventListener('scroll', () => { if (tipOwner && tipOwner.lastPointer !== 'mouse') hideTip(); }, { passive: true });
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('.viz3d')) hideTip(); });
+
+  // ---------- จัดการ view ----------
+  const views = new Map();
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const tmpV = new THREE.Vector3();
+
+  function disposeView(v) {
+    v.scene.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+    });
+    if (v.el && v.el.isConnected) v.el.querySelectorAll('.viz-axis').forEach(n => n.remove());
+    views.delete(v.id);
+    if (tipOwner === v) hideTip();
+  }
+
+  function mount(id, type, data) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const old = views.get(id);
+    if (old) disposeView(old);
+    const builder = BUILDERS[type];
+    if (!builder) return;
+    const v = {
+      id, el, type, scene: baseScene(), camera: new THREE.PerspectiveCamera(32, 1, 0.1, 100),
+      root: new THREE.Group(), pickables: [], highlight: -1,
+      rot: 0, rotTarget: 0, rotMin: -Infinity, rotMax: Infinity, autoSpin: 0.18,
+      fit: { x: 2, y: 1.5, target: new THREE.Vector3(), dir: new THREE.Vector3(0, 0.5, 1).normalize() },
+      visibleSince: null, userTime: -1e9, drag: null, lastPointer: 'touch',
+      update() {}, pick() { return null; },
+    };
+    v.scene.add(v.root);
+    builder(v, data || {});
+    if (reduceMotion) v.autoSpin = 0;
+    bindPointer(v);
+    views.set(id, v);
+  }
+
+  function bindPointer(v) {
+    const el = v.el;
+    const pickAt = (e, isHover) => {
+      const r = el.getBoundingClientRect();
+      ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      raycaster.setFromCamera(ndc, v.camera);
+      const hit = raycaster.intersectObjects(v.pickables, false)[0];
+      const info = hit ? v.pick(hit.object) : null;
+      if (info) { v.highlight = info.index; showTip(v, info.html, e.clientX, e.clientY); }
+      else if (!isHover || tipOwner === v) hideTip();
+    };
+    el.addEventListener('pointerdown', e => {
+      v.lastPointer = e.pointerType;
+      v.drag = { x: e.clientX, rot: v.rotTarget, moved: false };
+    });
+    el.addEventListener('pointermove', e => {
+      v.lastPointer = e.pointerType;
+      if (v.drag) {
+        const dx = e.clientX - v.drag.x;
+        if (Math.abs(dx) > 6) { v.drag.moved = true; hideTip(); }
+        if (v.drag.moved) { v.rotTarget = clamp(v.drag.rot + dx * 0.012, v.rotMin, v.rotMax); v.userTime = performance.now(); }
+      } else if (e.pointerType === 'mouse') pickAt(e, true);
+    });
+    el.addEventListener('pointerup', e => {
+      if (v.drag && !v.drag.moved) pickAt(e, false);
+      v.drag = null; v.userTime = performance.now();
+    });
+    el.addEventListener('pointercancel', () => { v.drag = null; });
+    el.addEventListener('pointerleave', e => { v.drag = null; if (e.pointerType === 'mouse' && tipOwner === v) hideTip(); });
+  }
+
+  // จัดกล้องให้วัตถุพอดีกรอบไม่ว่ากล่องจะกว้างแค่ไหน
+  function fitCamera(v, aspect) {
+    const t = Math.tan(THREE.MathUtils.degToRad(v.camera.fov / 2));
+    const d = Math.max(v.fit.y / t, v.fit.x / (t * aspect)) * 1.08 + (v.fit.z || 0);
+    v.camera.aspect = aspect;
+    v.camera.position.copy(v.fit.target).addScaledVector(v.fit.dir, d);
+    v.camera.lookAt(v.fit.target);
+    v.camera.updateProjectionMatrix();
+    v.camera.updateMatrixWorld();
+  }
+
+  // ฉายพิกัด 3D ไปเป็นตำแหน่งในกล่อง (ไว้วางป้ายข้อความ HTML)
+  function projectTo(v, obj, offset, rect, out) {
+    tmpV.copy(offset); obj.localToWorld(tmpV); tmpV.project(v.camera);
+    out.x = (tmpV.x * 0.5 + 0.5) * rect.width;
+    out.y = (-tmpV.y * 0.5 + 0.5) * rect.height;
+    return out;
+  }
+
+  // =============================================
+  //  BUILDERS
+  // =============================================
+  const BUILDERS = {};
+
+  // ---------- บ้านลอยฟ้า: ทองไหลขึ้นตาม % ที่ผ่อนไปแล้ว ----------
+  BUILDERS.house = (v, data) => {
+    const progress = clamp((data.progress || 0) / 100);
+    v.fit.x = 3.3; v.fit.y = 2.35; v.fit.target.set(0, 0.35, 0); v.fit.dir.set(0, 0.32, 1).normalize();
+    v.autoSpin = 0.25;
+
+    const island = new THREE.Group();
+    v.root.add(island);
+    const rock = new THREE.Mesh(new THREE.ConeGeometry(2.05, 1.7, 7), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9, flatShading: true }));
+    rock.rotation.x = Math.PI; rock.position.y = -1.08; island.add(rock);
+    const soil = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.05, 0.28, 7), new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.9, flatShading: true }));
+    soil.position.y = -0.16; island.add(soil);
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(2.32, 2.32, 0.06, 7), new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.8, flatShading: true }));
+    grass.position.y = -0.01; island.add(grass);
+    [[-1.55, 0.75, 1], [1.5, -0.9, 0.8], [-1.2, -1.2, 0.65]].forEach(([x, z, s]) => {
+      const t = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.35, 6), new THREE.MeshStandardMaterial({ color: 0x78350F }));
+      trunk.position.y = 0.17; t.add(trunk);
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.75, 7), new THREE.MeshStandardMaterial({ color: 0x34D399, flatShading: true, roughness: 0.7 }));
+      crown.position.y = 0.7; t.add(crown);
+      t.position.set(x, 0, z); t.scale.setScalar(s); island.add(t);
+    });
+
+    // ตัวบ้าน
+    const house = new THREE.Group();
+    island.add(house);
+    const roofShape = new THREE.Shape();
+    roofShape.moveTo(-1.2, 0); roofShape.lineTo(1.2, 0); roofShape.lineTo(0, 0.9); roofShape.closePath();
+    const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 1.8, bevelEnabled: false });
+    roofGeo.translate(0, 1.3, -0.9);
+    const bodyGeo = new THREE.BoxGeometry(2, 1.3, 1.6); bodyGeo.translate(0, 0.65, 0);
+    const chimGeo = new THREE.BoxGeometry(0.28, 0.6, 0.28); chimGeo.translate(0.6, 1.75, -0.35);
+    const shells = [bodyGeo, roofGeo, chimGeo];
+
+    const H = 2.2; // ความสูงบ้านถึงยอดหลังคา
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xFBBF24, metalness: 0.9, roughness: 0.22, clippingPlanes: [clipPlane], side: THREE.DoubleSide });
+    shells.forEach(g => {
+      house.add(new THREE.Mesh(g, M.ghost()));
+      house.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), M.edge()));
+      house.add(new THREE.Mesh(g, goldMat));
+    });
+    // ประตู หน้าต่าง เปิดไฟอุ่นๆ
+    const glow = new THREE.MeshStandardMaterial({ color: 0xFDE68A, emissive: 0xF59E0B, emissiveIntensity: 1.2 });
+    [[0, 0.36, 0.81, 0.42, 0.72], [-0.62, 0.82, 0.81, 0.4, 0.34], [0.62, 0.82, 0.81, 0.4, 0.34]].forEach(([x, y, z, w, h]) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.04), glow); m.position.set(x, y, z); house.add(m);
+    });
+    [-0.45, 0.45].forEach(z => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.34, 0.36), glow); m.position.set(1.01, 0.8, z); house.add(m); });
+
+    // ผิวน้ำทองด้านบน + วงแหวนบอกระดับ
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(1, 0.025, 1), new THREE.MeshStandardMaterial({ color: 0xFDE68A, emissive: 0xFBBF24, emissiveIntensity: 0.6, metalness: 0.6, roughness: 0.3 }));
+    house.add(cap);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.018, 8, 80), new THREE.MeshBasicMaterial({ color: 0xFBBF24, transparent: true, opacity: 0.8 }));
+    ring.rotation.x = Math.PI / 2; house.add(ring);
+
+    // เหรียญโคจรรอบบ้าน
+    const coins = [];
+    const coinGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.045, 28);
+    for (let i = 0; i < 6; i++) {
+      const c = new THREE.Mesh(coinGeo, M.gold());
+      c.userData = { a: (i / 6) * Math.PI * 2, y: 0.4 + (i % 3) * 0.55, r: 2.65 + (i % 2) * 0.25 };
+      v.root.add(c); coins.push(c);
+    }
+
+    let fill = 0;
+    const p = new THREE.Vector3();
+    v.update = (t, dt, appear) => {
+      v.root.scale.setScalar(0.001 + appear);
+      island.position.y = Math.sin(t * 0.0012) * 0.08;
+      if (appear > 0.6) fill += (progress - fill) * clamp(dt * 1.6);
+      const fy = fill * H;
+      v.root.updateMatrixWorld(true);
+      p.set(0, fy, 0); house.localToWorld(p);
+      clipPlane.constant = p.y;
+      // ฝาปิดผิวทองให้พอดีกับรูปทรงบ้าน (ตัวบ้าน หรือ หลังคาที่แคบลง)
+      const showCap = fill > 0.002 && fill < 0.995;
+      cap.visible = ring.visible = showCap;
+      if (showCap) {
+        if (fy <= 1.3) cap.scale.set(1.98, 1, 1.58);
+        else { const k = 1 - (fy - 1.3) / 0.9; cap.scale.set(Math.max(0.01, 2.38 * k), 1, 1.78); }
+        cap.position.y = fy; ring.position.y = fy;
+        ring.scale.setScalar(1 + Math.sin(t * 0.004) * 0.03);
+      }
+      coins.forEach((c, i) => {
+        const u = c.userData, a = u.a + t * 0.0006;
+        c.position.set(Math.cos(a) * u.r, u.y + Math.sin(t * 0.002 + i) * 0.12 + island.position.y, Math.sin(a) * u.r);
+        c.rotation.set(Math.PI / 2, 0, t * 0.003 + i);
+      });
+    };
+  };
+
+  // ---------- โดนัท 3 มิติ: ความสูงแต่ละชิ้นตามสัดส่วน ----------
+  BUILDERS.donut = (v, data) => {
+    const items = (data.items || []).filter(it => it.value > 0);
+    const total = items.reduce((s, it) => s + it.value, 0) || 1;
+    const maxV = Math.max(...items.map(it => it.value), 1);
+    v.fit.x = 2.05; v.fit.y = 1.7; v.fit.target.set(0, 0.1, 0); v.fit.dir.set(0, 0.85, 1).normalize();
+    const R = 1.7, r = 1.05, gap = items.length > 1 ? 0.035 : 0;
+    const segs = [];
+    let a0 = Math.PI / 2;
+    items.forEach((it, idx) => {
+      const sweep = (it.value / total) * Math.PI * 2;
+      const s = a0 - gap, e = a0 - sweep + gap;
+      const shape = new THREE.Shape();
+      shape.absarc(0, 0, R, s, e, true);
+      shape.absarc(0, 0, r, e, s, false);
+      shape.closePath();
+      const depth = 0.22 + 0.38 * (it.value / maxV);
+      const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: Math.max(8, Math.ceil(sweep * 24)) });
+      geo.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshStandardMaterial({ color: it.color, metalness: 0.35, roughness: 0.3, emissive: it.color, emissiveIntensity: 0.05 });
+      const mesh = new THREE.Mesh(geo, mat);
+      const mid = a0 - sweep / 2;
+      mesh.userData = { idx, dir: new THREE.Vector3(Math.cos(mid), 0, -Math.sin(mid)), pop: 0, grow: 0 };
+      v.root.add(mesh); v.pickables.push(mesh); segs.push(mesh);
+      a0 -= sweep;
+    });
+    // ฐานวงแหวนกระจก
+    const base = new THREE.Mesh(new THREE.RingGeometry(r - 0.15, R + 0.2, 64), new THREE.MeshBasicMaterial({ color: 0x38BDF8, transparent: true, opacity: 0.07, side: THREE.DoubleSide }));
+    base.rotation.x = -Math.PI / 2; base.position.y = -0.04; v.root.add(base);
+
+    v.pick = obj => {
+      const it = items[obj.userData.idx];
+      return { index: obj.userData.idx, html: `<b style="color:${it.color}">${it.label}</b><span class="mono">${fmtB(it.value)} บ.</span><br><span style="color:#94A3B8">${(it.value / total * 100).toFixed(1)}%</span>` };
+    };
+    v.update = (t, dt, appear) => {
+      v.root.scale.setScalar(0.001 + appear);
+      v.root.position.y = Math.sin(t * 0.0015) * 0.03;
+      segs.forEach((m, i) => {
+        const u = m.userData;
+        u.grow += ((appear > 0 ? 1 : 0) - u.grow) * clamp(dt * (3 - i * 0.4));
+        u.pop += ((v.highlight === u.idx ? 1 : 0) - u.pop) * clamp(dt * 10);
+        m.scale.y = Math.max(0.01, easeOutCubic(u.grow)) * (1 + u.pop * 0.35);
+        m.position.copy(u.dir).multiplyScalar(u.pop * 0.18);
+        m.material.emissiveIntensity = 0.05 + u.pop * 0.35;
+      });
+    };
+  };
+
+  // ---------- กราฟแท่งซ้อน 3 มิติ ----------
+  BUILDERS.bars = (v, data) => {
+    const labels = data.labels || [];
+    const series = data.series || [];
+    const n = labels.length;
+    const totals = labels.map((_, i) => series.reduce((s, se) => s + (se.values[i] || 0), 0));
+    const maxT = Math.max(...totals, 1);
+    const W = 8, step = W / Math.max(n, 1), bw = Math.min(0.62, step * 0.62), Hmax = 3.2;
+    v.fit.x = W / 2 + 0.4; v.fit.y = 2.0; v.fit.target.set(0, 1.35, 0); v.fit.dir.set(0.32, 0.42, 1).normalize();
+    v.rotMin = -0.55; v.rotMax = 0.55; v.autoSpin = 0;
+
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(W + 0.6, 0.08, 1.4), new THREE.MeshStandardMaterial({ color: 0x1E293B, metalness: 0.3, roughness: 0.6 }));
+    floor.position.y = -0.04; v.root.add(floor);
+    // เส้นอ้างอิงด้านหลัง
+    const gridMat = new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.6 });
+    for (let k = 1; k <= 4; k++) {
+      const y = (Hmax * k) / 4;
+      const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-W / 2 - 0.3, y, -0.6), new THREE.Vector3(W / 2 + 0.3, y, -0.6)]);
+      v.root.add(new THREE.Line(g, gridMat));
+    }
+
+    const cols = [];
+    const box = new THREE.BoxGeometry(1, 1, 1); box.translate(0, 0.5, 0);
+    labels.forEach((lab, i) => {
+      const col = new THREE.Group();
+      col.position.x = -W / 2 + step * (i + 0.5);
+      let y = 0;
+      series.forEach(se => {
+        const h = ((se.values[i] || 0) / maxT) * Hmax;
+        if (h <= 0) return;
+        const m = new THREE.Mesh(box, new THREE.MeshStandardMaterial({ color: se.color, metalness: 0.35, roughness: 0.32, emissive: se.color, emissiveIntensity: 0.04 }));
+        m.scale.set(bw, h, bw); m.position.y = y; m.userData = { idx: i };
+        col.add(m); v.pickables.push(m);
+        y += h;
+      });
+      col.userData = { top: y, grow: 0 };
+      v.root.add(col); cols.push(col);
+      const lbl = document.createElement('div');
+      lbl.className = 'viz-axis'; lbl.textContent = lab; lbl.style.opacity = 0;
+      v.el.appendChild(lbl); col.userData.lbl = lbl;
+    });
+
+    v.pick = obj => {
+      const i = obj.userData.idx;
+      return { index: i, html: `<b>${labels[i]}</b>` + series.map(se => `<div><span style="color:${se.color}">● ${se.label}</span> <span class="mono">${fmtB(se.values[i])}</span></div>`).join('') + `<div style="color:#94A3B8;margin-top:4px">รวม <span class="mono">${fmtB(totals[i])}</span></div>` };
+    };
+    const off = new THREE.Vector3(0, -0.05, 0.75), out = { x: 0, y: 0 };
+    v.update = (t, dt, appear, rect) => {
+      v.root.scale.setScalar(0.001 + Math.min(1, appear * 1.2));
+      // จอแคบ: แสดงป้ายเดือนเว้นระยะ ไม่ให้ตัวหนังสือทับกัน
+      const stride = Math.max(1, Math.ceil(52 / (rect.width / Math.max(n, 1))));
+      if (!reduceMotion && t - v.userTime > 2500) v.rotTarget = Math.sin(t * 0.0004) * 0.18;
+      cols.forEach((c, i) => {
+        const u = c.userData;
+        const target = appear > 0.3 ? 1 : 0;
+        u.grow += (target - u.grow) * clamp(dt * 4 * (target ? clamp((appear - 0.3) * 3 - i * 0.08, 0, 1) : 1));
+        const hl = v.highlight === i ? 1 : 0;
+        c.scale.y = Math.max(0.005, easeOutBack(u.grow));
+        c.position.z += ((hl ? 0.35 : 0) - c.position.z) * clamp(dt * 10);
+        c.children.forEach(m => { m.material.emissiveIntensity = 0.04 + hl * 0.4; });
+        c.updateMatrixWorld(true);
+        projectTo(v, c, off, rect, out);
+        u.lbl.style.left = out.x + 'px'; u.lbl.style.top = out.y + 4 + 'px';
+        u.lbl.style.opacity = (hl || (n - 1 - i) % stride === 0) ? appear : 0;
+        u.lbl.style.color = hl ? '#FBBF24' : '';
+      });
+    };
+  };
+
+  // ---------- หอคอยเหรียญ: สิทธิลดหย่อนภาษี (1 หอ = 10,000 บาท) ----------
+  BUILDERS.coins = (v, data) => {
+    const value = Math.max(0, data.value || 0), quota = data.quota || 100000;
+    const towers = 10, per = quota / towers, perCoin = 5;
+    const step = 0.72, th = 0.11;
+    v.fit.x = (towers * step) / 2 + 0.3; v.fit.y = 0.95; v.fit.target.set(0, 0.35, 0); v.fit.dir.set(0, 0.55, 1).normalize();
+    v.rotMin = -0.5; v.rotMax = 0.5; v.autoSpin = 0;
+    const geo = new THREE.CylinderGeometry(0.28, 0.28, th * 0.85, 32);
+    const ghostMat = M.ghost(); ghostMat.opacity = 0.16;
+    const coinGold = M.gold();
+    const edgeMat = M.edge(); edgeMat.opacity = 0.25;
+    const edgeGeo = new THREE.EdgesGeometry(geo, 30);
+    const filled = [];
+    for (let i = 0; i < towers; i++) {
+      const x = -((towers - 1) * step) / 2 + i * step;
+      const towerVal = clamp((value - i * per) / per, 0, 1);
+      const nFill = towerVal * perCoin;
+      for (let k = 0; k < perCoin; k++) {
+        const y = k * th + th / 2;
+        const part = clamp(nFill - k, 0, 1);
+        if (part > 0) {
+          const c = new THREE.Mesh(geo, coinGold);
+          c.position.set(x, y, 0); c.rotation.y = (i * 7 + k) * 0.6;
+          c.userData = { idx: i, base: y, delay: i * 0.07 + k * 0.03, part };
+          v.root.add(c); v.pickables.push(c); filled.push(c);
+        } else {
+          const g = new THREE.Mesh(geo, ghostMat); g.position.set(x, y, 0); g.userData = { idx: i };
+          v.root.add(g); v.pickables.push(g);
+          const e = new THREE.LineSegments(edgeGeo, edgeMat); e.position.copy(g.position); v.root.add(e);
+        }
+      }
+    }
+    v.pick = obj => {
+      const i = obj.userData.idx;
+      const used = clamp(value - i * per, 0, per);
+      return { index: i, html: `<b>ช่วง ${fmtB(i * per).replace('.00', '')} – ${fmtB((i + 1) * per).replace('.00', '')}</b><span class="mono" style="color:#FBBF24">ใช้ไป ${fmtB(used)} บ.</span>` };
+    };
+    v.update = (t, dt, appear) => {
+      v.root.scale.setScalar(0.001 + appear);
+      if (!reduceMotion && t - v.userTime > 2500) v.rotTarget = Math.sin(t * 0.0005) * 0.12;
+      const since = v.visibleSince == null ? 0 : (t - v.visibleSince) / 1000;
+      filled.forEach(c => {
+        const u = c.userData;
+        const k = easeOutBack(clamp((since - 0.4 - u.delay) * 2.2));
+        c.position.y = u.base + (1 - k) * 2.5;
+        c.scale.set(1, Math.max(0.01, u.part), 1);
+        c.visible = k > 0;
+        c.rotation.y += dt * (v.highlight === u.idx ? 4 : 0);
+      });
+    };
+  };
+
+  // =============================================
+  //  BACKGROUND SCENE
+  // =============================================
+  const bgScene = new THREE.Scene();
+  bgScene.background = new THREE.Color(0x0A0F1C);
+  bgScene.fog = new THREE.FogExp2(0x0A0F1C, 0.055);
+  const bgCam = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+  const grid = new THREE.GridHelper(80, 64, 0x1E3A5F, 0x15233D);
+  grid.position.y = -3.2; bgScene.add(grid);
+  const grid2 = grid.clone(); grid2.position.y = 9; bgScene.add(grid2);
+
+  const N = 420, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  const cGold = new THREE.Color(0xFBBF24), cBlue = new THREE.Color(0x38BDF8);
+  for (let i = 0; i < N; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 30; pos[i * 3 + 1] = (Math.random() - 0.5) * 14; pos[i * 3 + 2] = -Math.random() * 30 + 4;
+    const c = Math.random() < 0.35 ? cGold : cBlue; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.07, vertexColors: true, transparent: true, opacity: 0.85, depthWrite: false }));
+  bgScene.add(points);
+
+  const shapes = [
+    [new THREE.IcosahedronGeometry(1.6, 0), 0x38BDF8, [-6, 2, -12]],
+    [new THREE.OctahedronGeometry(1.2, 0), 0xFBBF24, [6.5, -0.5, -10]],
+    [new THREE.TorusGeometry(1.3, 0.35, 8, 24), 0xEC4899, [3, 4, -18]],
+  ].map(([g, c, p]) => {
+    const m = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.35 }));
+    m.position.set(...p); bgScene.add(m); return m;
+  });
+
+  const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+  window.addEventListener('pointermove', e => { pointer.tx = (e.clientX / window.innerWidth - 0.5); pointer.ty = (e.clientY / window.innerHeight - 0.5); }, { passive: true });
+
+  // =============================================
+  //  RENDER LOOP
+  // =============================================
+  let last = performance.now();
+  let W = 0, Hh = 0;
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    if (w === W && h === Hh) return;
+    W = w; Hh = h;
+    fx.setSize(w, h, false);
+    bg.setSize(w, h, false);
+    bgCam.aspect = w / h; bgCam.updateProjectionMatrix();
+  }
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    resize();
+
+    // ----- พื้นหลัง -----
+    const speed = reduceMotion ? 0 : 1;
+    pointer.x += (pointer.tx - pointer.x) * 0.04; pointer.y += (pointer.ty - pointer.y) * 0.04;
+    const scrollK = (window.scrollY || 0) * 0.004;
+    bgCam.position.set(pointer.x * 1.5, 0.6 - pointer.y * 0.8 - scrollK, 6);
+    bgCam.lookAt(0, -scrollK * 0.6, -10);
+    const cell = 80 / 64;
+    grid.position.z = ((now * 0.0006 * speed) % cell); grid2.position.z = grid.position.z;
+    points.rotation.y = now * 0.00002 * speed;
+    const pa = pGeo.attributes.position;
+    for (let i = 0; i < N; i++) { let y = pa.array[i * 3 + 1] + dt * 0.12 * speed; if (y > 7) y = -7; pa.array[i * 3 + 1] = y; }
+    pa.needsUpdate = true;
+    shapes.forEach((s, i) => { s.rotation.x = now * 0.0002 * (i + 1) * speed; s.rotation.y = now * 0.0003 * speed; });
+    bg.render(bgScene, bgCam);
+
+    // ----- กราฟ 3 มิติ -----
+    fx.setScissorTest(false);
+    fx.clear();
+    fx.setScissorTest(true);
+    for (const v of views.values()) {
+      if (!v.el.isConnected) { disposeView(v); continue; }
+      if (v.el.offsetParent === null) { v.visibleSince = null; continue; }
+      const r = v.el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > Hh || r.right < 0 || r.left > W) { continue; }
+      if (v.visibleSince == null) v.visibleSince = now;
+      // รอให้การ์ดเล่นแอนิเมชันเข้าจบก่อน กราฟจะได้ไม่ลอยผิดตำแหน่ง
+      const appear = reduceMotion ? 1 : easeOutBack(clamp((now - v.visibleSince - 420) / 650));
+      if (!v.drag && v.autoSpin && now - v.userTime > 3000) v.rotTarget += v.autoSpin * dt;
+      v.rot += (v.rotTarget - v.rot) * clamp(dt * 8);
+      v.root.rotation.y = v.rot;
+      fitCamera(v, r.width / r.height);
+      v.update(now, dt, appear, r);
+      const bottom = Hh - r.bottom;
+      fx.setViewport(r.left, bottom, r.width, r.height);
+      fx.setScissor(r.left, bottom, r.width, r.height);
+      fx.render(v.scene, v.camera);
+    }
+  }
+
+  // ---------- เปิดใช้ API แทนคิวชั่วคราว ----------
+  const queued = window.Viz3D?._q || [];
+  window.Viz3D = {
+    ready: true,
+    mount,
+    unmountAll() { [...views.values()].forEach(disposeView); },
+  };
+  queued.forEach(([fn, args]) => window.Viz3D[fn]?.(...args));
+  requestAnimationFrame(frame);
+}
 </script>
 </body>
 </html>
